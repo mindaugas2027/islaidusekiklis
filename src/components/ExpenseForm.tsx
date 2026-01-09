@@ -4,16 +4,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Expense, ExpenseCategory } from "@/types/expense"; // Using @ alias
+import { Expense } from "@/types/expense";
 import { toast } from "sonner";
 
 interface ExpenseFormProps {
   onAddExpense: (expense: Expense) => void;
+  categories: string[]; // Added categories prop
 }
 
-const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense }) => {
+const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) => {
   const [amount, setAmount] = useState<string>("");
-  const [category, setCategory] = useState<ExpenseCategory>(ExpenseCategory.FOOD);
+  const [category, setCategory] = useState<string>(categories.length > 0 ? categories[0] : ""); // Default to first category or empty
   const [description, setDescription] = useState<string>("");
   const [date, setDate] = useState<string>(new Date().toISOString().split("T")[0]);
 
@@ -27,6 +28,10 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense }) => {
     }
     if (!description.trim()) {
       toast.error("Prašome įvesti aprašymą.");
+      return;
+    }
+    if (!category) {
+      toast.error("Prašome pasirinkti kategoriją.");
       return;
     }
 
@@ -66,16 +71,20 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense }) => {
           </div>
           <div>
             <Label htmlFor="category">Kategorija</Label>
-            <Select value={category} onValueChange={(value: ExpenseCategory) => setCategory(value)}>
+            <Select value={category} onValueChange={(value: string) => setCategory(value)}>
               <SelectTrigger id="category">
                 <SelectValue placeholder="Pasirinkite kategoriją" />
               </SelectTrigger>
               <SelectContent>
-                {Object.values(ExpenseCategory).map((cat: ExpenseCategory) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
+                {categories.length === 0 ? (
+                  <SelectItem value="" disabled>Nėra kategorijų</SelectItem>
+                ) : (
+                  categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -100,7 +109,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense }) => {
               required
             />
           </div>
-          <Button type="submit" className="w-full">
+          <Button type="submit" className="w-full" disabled={categories.length === 0}>
             Pridėti išlaidą
           </Button>
         </form>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Expense, ExpenseCategory } from "@/types/expense"; // Using @ alias
+import { Expense } from "@/types/expense"; // Removed ExpenseCategory import
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
