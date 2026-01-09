@@ -16,6 +16,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
   const [newCategoryName, setNewCategoryName] = useState<string>("");
   const [isAdding, setIsAdding] = useState(false);
   const [deletingCategories, setDeletingCategories] = useState<Set<string>>(new Set());
+  const [optimisticCategories, setOptimisticCategories] = useState<string[]>([]);
 
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,25 +27,34 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
       return;
     }
     
-    if (categories.includes(trimmedName)) {
+    // Check if category already exists in current list or optimistic list
+    if (categories.includes(trimmedName) || optimisticCategories.includes(trimmedName)) {
       toast.error("Tokia kategorija jau egzistuoja.");
       return;
     }
     
     setIsAdding(true);
+    
+    // Immediately add to optimistic list for instant UI feedback
+    setOptimisticCategories(prev => [...prev, trimmedName]);
+    setNewCategoryName("");
+    
     try {
       await onAddCategory(trimmedName);
-      setNewCategoryName("");
-      toast.success(`Kategorija "${trimmedName}" pridėta.`);
+      // Success message is handled in the hook
+      // Remove from optimistic list after successful addition
+      setOptimisticCategories(prev => prev.filter(cat => cat !== trimmedName));
     } catch (error) {
       toast.error("Nepavyko pridėti kategorijos");
+      // Remove from optimistic list if failed
+      setOptimisticCategories(prev => prev.filter(cat => cat !== trimmedName));
     } finally {
       setIsAdding(false);
     }
   };
 
   const handleDeleteCategory = async (category: string) => {
-    // Immediately remove from UI by adding to deleting set
+    // Immediately add to deleting set for UI feedback
     setDeletingCategories(prev => new Set(prev).add(category));
     
     try {
@@ -61,8 +71,12 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
     }
   };
 
-  // Filter out categories that are being deleted
-  const visibleCategories = categories.filter(category => !deletingCategories.has(category));
+  // Combine real categories with optimistic ones and filter out deleting ones
+  const visibleCategories = [...categories, ...optimisticCategories]
+    .filter(category => !deletingCategories.has(category))
+    // Remove duplicates
+    .filter((category, index, self) => self.indexOf(category) === index)
+    .sort();
 
   return (
     <Card className="w-full max-w-md mx-auto">
