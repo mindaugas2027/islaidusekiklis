@@ -48,7 +48,7 @@ const Index = () => {
   const { categories, loading: categoriesLoading, addCategory, deleteCategory } = useCategories();
   const { monthlyIncomes, defaultMonthlyIncome, saveIncome } = useMonthlyIncomes();
   const { recurringExpenses, addRecurringExpense, deleteRecurringExpense } = useRecurringExpenses();
-
+  
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
   const currentYear = String(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
@@ -176,10 +176,12 @@ const Index = () => {
   }, [filteredExpenses]);
 
   const selectedMonthYear = `${selectedYear}-${selectedMonth}`;
-  const currentMonthIncome = monthlyIncomes[selectedMonthYear] !== undefined 
+  
+  // Fixed logic: Use default income when monthly income is not set OR when it's 0
+  const currentMonthIncome = monthlyIncomes[selectedMonthYear] !== undefined && monthlyIncomes[selectedMonthYear] !== null 
     ? monthlyIncomes[selectedMonthYear] 
     : defaultMonthlyIncome;
-
+  
   const previousMonthCarryOver = useMemo(() => {
     let prevMonth = parseInt(selectedMonth) - 1;
     let prevYear = parseInt(selectedYear);
@@ -200,10 +202,11 @@ const Index = () => {
     });
     
     const totalExpensesForPreviousMonth = expensesForPreviousMonth.reduce((sum, expense) => sum + expense.amount, 0);
-    const previousMonthIncome = monthlyIncomes[prevMonthYear] !== undefined 
-      ? monthlyIncomes[prevMonthYear] 
+    
+    const previousMonthIncome = monthlyIncomes[prevMonthYear] !== undefined && monthlyIncomes[prevMonthYear] !== null
+      ? monthlyIncomes[prevMonthYear]
       : defaultMonthlyIncome;
-      
+    
     return previousMonthIncome - totalExpensesForPreviousMonth;
   }, [expenses, monthlyIncomes, defaultMonthlyIncome, selectedMonth, selectedYear]);
 
@@ -255,39 +258,39 @@ const Index = () => {
         
         <div className="mb-6 flex justify-center">
           <MonthYearNavigator 
-            selectedMonth={selectedMonth}
-            setSelectedMonth={setSelectedMonth}
-            selectedYear={selectedYear}
-            setSelectedYear={setSelectedYear}
+            selectedMonth={selectedMonth} 
+            setSelectedMonth={setSelectedMonth} 
+            selectedYear={selectedYear} 
+            setSelectedYear={setSelectedYear} 
           />
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <ExpenseForm 
-            onAddExpense={handleAddExpense}
-            categories={categories}
+            onAddExpense={handleAddExpense} 
+            categories={categories} 
           />
           <IncomeTracker 
-            monthlyIncome={currentMonthIncome}
-            totalExpenses={totalExpensesForSelectedMonth}
-            previousMonthCarryOver={previousMonthCarryOver}
+            monthlyIncome={currentMonthIncome} 
+            totalExpenses={totalExpensesForSelectedMonth} 
+            previousMonthCarryOver={previousMonthCarryOver} 
           />
         </div>
         
         <ExpenseChart 
-          expenses={filteredExpenses}
-          selectedMonth={selectedMonth}
-          selectedYear={selectedYear}
+          expenses={filteredExpenses} 
+          selectedMonth={selectedMonth} 
+          selectedYear={selectedYear} 
         />
         
         <MonthlyLineChart 
-          monthlyData={monthlyExpenseTotals}
-          selectedYear={selectedYear}
+          monthlyData={monthlyExpenseTotals} 
+          selectedYear={selectedYear} 
         />
         
         <ExpenseList 
-          expenses={filteredExpenses}
-          onDeleteExpense={handleDeleteExpense}
+          expenses={filteredExpenses} 
+          onDeleteExpense={handleDeleteExpense} 
         />
       </div>
     </div>
