@@ -36,10 +36,11 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
       toast.error("Prašome įvesti teigiamą sumą.");
       return;
     }
-    if (!description.trim()) {
-      toast.error("Prašome įvesti aprašymą.");
-      return;
-    }
+    // Aprašymo laukas nebėra privalomas, todėl pašaliname šį patikrinimą
+    // if (!description.trim()) {
+    //   toast.error("Prašome įvesti aprašymą.");
+    //   return;
+    // }
     if (!category) {
       toast.error("Prašome pasirinkti kategoriją.");
       return;
@@ -53,7 +54,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
       id: Date.now().toString(),
       amount: parsedAmount,
       category,
-      description,
+      description: description.trim(), // Vis tiek išvalome tarpus, jei aprašymas yra
       date: date.toISOString().split("T")[0], // Konvertuojame Date į YYYY-MM-DD stringą
     };
 
@@ -103,14 +104,14 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
             </Select>
           </div>
           <div>
-            <Label htmlFor="description">Aprašymas</Label>
+            <Label htmlFor="description">Aprašymas (neprivaloma)</Label>
             <Input
               id="description"
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Pvz., Pirkimas parduotuvėje"
-              required
+              // required atributas pašalintas
             />
           </div>
           <div>
