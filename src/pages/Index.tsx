@@ -4,11 +4,12 @@ import ExpenseList from "@/components/ExpenseList";
 import ExpenseChart from "@/components/ExpenseChart";
 import IncomeTracker from "@/components/IncomeTracker";
 import Sidebar from "@/components/Sidebar";
+import MonthlyLineChart from "@/components/MonthlyLineChart"; // Naujas importas
 import { Expense } from "@/types/expense";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import MonthYearNavigator from "@/components/MonthYearNavigator"; // Naujas importas
+import MonthYearNavigator from "@/components/MonthYearNavigator";
 
 const DEFAULT_CATEGORIES = [
   "Maistas", "Kuras", "Pramogos", "Transportas", "Būstas",
@@ -33,8 +34,8 @@ const months = [
 const Index = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [monthlyIncomes, setMonthlyIncomes] = useState<{ [key: string]: number }>({}); // Pajamos pagal mėnesius (YYYY-MM)
-  const [defaultMonthlyIncome, setDefaultMonthlyIncome] = useState<number>(0); // Numatytosios pajamos
+  const [monthlyIncomes, setMonthlyIncomes] = useState<{ [key: string]: number }>({});
+  const [defaultMonthlyIncome, setDefaultMonthlyIncome] = useState<number>(0);
 
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
   const currentYear = String(new Date().getFullYear());
@@ -159,7 +160,7 @@ const Index = () => {
     let prevMonth = parseInt(selectedMonth) - 1;
     let prevYear = parseInt(selectedYear);
 
-    if (prevMonth === 0) { // If current month is January, previous month is December of previous year
+    if (prevMonth === 0) {
       prevMonth = 12;
       prevYear -= 1;
     }
@@ -182,6 +183,23 @@ const Index = () => {
     return previousMonthIncome - totalExpensesForPreviousMonth;
   }, [expenses, monthlyIncomes, defaultMonthlyIncome, selectedMonth, selectedYear]);
 
+  const monthlyExpenseTotals = useMemo(() => {
+    const monthlyTotals: { [key: string]: number } = {};
+    expenses.forEach(expense => {
+      const expenseDate = new Date(expense.date);
+      const year = String(expenseDate.getFullYear());
+      const month = String(expenseDate.getMonth() + 1).padStart(2, '0');
+      if (year === selectedYear) {
+        monthlyTotals[month] = (monthlyTotals[month] || 0) + expense.amount;
+      }
+    });
+
+    return months.map(m => ({
+      name: m.label,
+      total: parseFloat((monthlyTotals[m.value] || 0).toFixed(2)),
+    }));
+  }, [expenses, selectedYear]);
+
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8">
@@ -192,7 +210,6 @@ const Index = () => {
         monthlyIncomes={monthlyIncomes}
         defaultMonthlyIncome={defaultMonthlyIncome}
         onSaveIncome={handleSaveIncome}
-        // Removed selectedMonth, setSelectedMonth, selectedYear, setSelectedYear, availableYears
       />
       <div className="max-w-6xl mx-auto space-y-8">
         <h1 className="text-6xl font-extrabold text-center mb-10 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500 drop-shadow-lg">
@@ -218,6 +235,7 @@ const Index = () => {
         </div>
 
         <ExpenseChart expenses={filteredExpenses} selectedMonth={selectedMonth} selectedYear={selectedYear} />
+        <MonthlyLineChart monthlyData={monthlyExpenseTotals} selectedYear={selectedYear} /> {/* Nauja diagrama */}
         <ExpenseList expenses={filteredExpenses} onDeleteExpense={handleDeleteExpense} />
       </div>
     </div>
