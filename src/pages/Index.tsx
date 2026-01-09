@@ -4,12 +4,14 @@ import ExpenseList from "@/components/ExpenseList";
 import ExpenseChart from "@/components/ExpenseChart";
 import IncomeTracker from "@/components/IncomeTracker";
 import Sidebar from "@/components/Sidebar";
-import MonthlyLineChart from "@/components/MonthlyLineChart"; // Naujas importas
+import MonthlyLineChart from "@/components/MonthlyLineChart";
 import { Expense } from "@/types/expense";
+import { RecurringExpense } from "@/types/recurringExpense"; // Naujas importas
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import MonthYearNavigator from "@/components/MonthYearNavigator";
+import { format, lastDayOfMonth, isValid } from "date-fns"; // Importuojame papildomas date-fns funkcijas
 
 const DEFAULT_CATEGORIES = [
   "Maistas", "Kuras", "Pramogos", "Transportas", "Būstas",
@@ -36,6 +38,7 @@ const Index = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [monthlyIncomes, setMonthlyIncomes] = useState<{ [key: string]: number }>({});
   const [defaultMonthlyIncome, setDefaultMonthlyIncome] = useState<number>(0);
+  const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([]); // Nauja būsena
 
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
   const currentYear = String(new Date().getFullYear());
@@ -69,6 +72,11 @@ const Index = () => {
         setDefaultMonthlyIncome(parsedIncome);
       }
     }
+
+    const storedRecurringExpenses = localStorage.getItem("recurringExpenses"); // Įkeliame pasikartojančias išlaidas
+    if (storedRecurringExpenses) {
+      setRecurringExpenses(JSON.parse(storedRecurringExpenses));
+    }
   }, []);
 
   // Save data to localStorage whenever it changes
@@ -88,6 +96,61 @@ const Index = () => {
     localStorage.setItem("defaultMonthlyIncome", defaultMonthlyIncome.toString());
   }, [defaultMonthlyIncome]);
 
+  useEffect(() => {
+    localStorage.setItem("recurringExpenses", JSON.stringify(recurringExpenses)); // Išsaugome pasikartojančias išlaidas
+  }, [recurringExpenses]);
+
+  // Logic to automatically add recurring expenses for the selected month/year
+  useEffect(() => {
+    const addRecurringExpensesForMonth = () => {
+      const newExpensesToAdd: Expense[] = [];
+      const currentMonthYear = `${selectedYear}-${selectedMonth}`;
+
+      recurringExpenses.forEach(recExpense => {
+        // Calculate the exact date for the recurring expense in the selected month/year
+        const tempDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, recExpense.dayOfMonth);
+        const actualDay = Math.min(recExpense.dayOfMonth, lastDayOfMonth(tempDate).getDate());
+        const expenseDate = format(new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, actualDay), 'yyyy-MM-dd');
+
+        // Create a unique ID for this specific instance of the recurring expense
+        const recurringInstanceId = `RECURRING-${recExpense.id}-${expenseDate}`;
+
+        // Check if this specific recurring expense instance already exists in the current expenses
+        const exists = expenses.some(
+          (exp) => exp.id === recurringInstanceId
+        );
+
+        if (!exists) {
+          newExpensesToAdd.push({
+            id: recurringInstanceId,
+            amount: recExpense.amount,
+            category: recExpense.category,
+            description: recExpense.name,
+            date: expenseDate,
+          });
+        }
+      });
+
+      if (newExpensesToAdd.length > 0) {
+        setExpenses(prevExpenses => {
+          // Filter out any existing recurring expenses that might have been manually deleted
+          // and ensure we only add new ones.
+          const existingNonRecurring = prevExpenses.filter(exp => !exp.id.startsWith("RECURRING-"));
+          const existingRecurringForOtherMonths = prevExpenses.filter(exp => exp.id.startsWith("RECURRING-") && !exp.id.includes(currentMonthYear));
+          
+          // Add only unique new recurring expenses
+          const uniqueNewRecurring = newExpensesToAdd.filter(
+            newExp => !prevExpenses.some(existingExp => existingExp.id === newExp.id)
+          );
+
+          return [...existingNonRecurring, ...existingRecurringForOtherMonths, ...uniqueNewRecurring];
+        });
+      }
+    };
+
+    addRecurringExpensesForMonth();
+  }, [selectedMonth, selectedYear, recurringExpenses]); // Rerun when month/year or recurring expenses change
+
   const handleAddExpense = (newExpense: Expense) => {
     setExpenses((prevExpenses) => [...prevExpenses, newExpense]);
   };
@@ -104,10 +167,13 @@ const Index = () => {
     const expensesWithCategory = expenses.filter(
       (expense) => expense.category === categoryToDelete
     );
+    const recurringExpensesWithCategory = recurringExpenses.filter(
+      (recExpense) => recExpense.category === categoryToDelete
+    );
 
-    if (expensesWithCategory.length > 0) {
+    if (expensesWithCategory.length > 0 || recurringExpensesWithCategory.length > 0) {
       toast.error(
-        `Negalima ištrinti kategorijos "${categoryToDelete}", nes ji naudojama ${expensesWithCategory.length} išlaidose.`
+        `Negalima ištrinti kategorijos "${categoryToDelete}", nes ji naudojama išlaidose arba pasikartojančiose išlaidose.`
       );
       return;
     }
@@ -129,6 +195,15 @@ const Index = () => {
       }));
       toast.success(`Mėnesio ${monthYear} pajamos atnaujintos!`);
     }
+  };
+
+  const handleAddRecurringExpense = (newRecExpense: Omit<RecurringExpense, "id">) => {
+    setRecurringExpenses((prev) => [...prev, { ...newRecExpense, id: Date.now().toString() }]);
+  };
+
+  const handleDeleteRecurringExpense = (id: string) => {
+    setRecurringExpenses((prev) => prev.filter((rec) => rec.id !== id));
+    toast.success("Pasikartojanti išlaida sėkmingai ištrinta.");
   };
 
   const availableYears = useMemo(() => {
@@ -210,6 +285,9 @@ const Index = () => {
         monthlyIncomes={monthlyIncomes}
         defaultMonthlyIncome={defaultMonthlyIncome}
         onSaveIncome={handleSaveIncome}
+        recurringExpenses={recurringExpenses} // Perduodame naujus prop'sus
+        onAddRecurringExpense={handleAddRecurringExpense} // Perduodame naujus prop'sus
+        onDeleteRecurringExpense={handleDeleteRecurringExpense} // Perduodame naujus prop'sus
       />
       <div className="max-w-6xl mx-auto space-y-8">
         <h1 className="text-6xl font-extrabold text-center mb-10 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500 drop-shadow-lg">
@@ -235,7 +313,7 @@ const Index = () => {
         </div>
 
         <ExpenseChart expenses={filteredExpenses} selectedMonth={selectedMonth} selectedYear={selectedYear} />
-        <MonthlyLineChart monthlyData={monthlyExpenseTotals} selectedYear={selectedYear} /> {/* Nauja diagrama */}
+        <MonthlyLineChart monthlyData={monthlyExpenseTotals} selectedYear={selectedYear} />
         <ExpenseList expenses={filteredExpenses} onDeleteExpense={handleDeleteExpense} />
       </div>
     </div>

@@ -4,6 +4,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Settings } from "lucide-react";
 import CategoryManager from "./CategoryManager";
 import MonthlyBudgetSettings from "./MonthlyBudgetSettings";
+import RecurringExpenseManager from "./RecurringExpenseManager";
+import { RecurringExpense } from "@/types/recurringExpense";
 
 interface SidebarProps {
   categories: string[];
@@ -12,7 +14,9 @@ interface SidebarProps {
   monthlyIncomes: { [key: string]: number };
   defaultMonthlyIncome: number;
   onSaveIncome: (income: number, type: 'default' | 'month', monthYear?: string) => void;
-  // Removed selectedMonth, setSelectedMonth, selectedYear, setSelectedYear, availableYears
+  recurringExpenses: RecurringExpense[];
+  onAddRecurringExpense: (expense: Omit<RecurringExpense, "id">) => void;
+  onDeleteRecurringExpense: (id: string) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -22,7 +26,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   monthlyIncomes,
   defaultMonthlyIncome,
   onSaveIncome,
-  // Removed selectedMonth, setSelectedMonth, selectedYear, setSelectedYear, availableYears
+  recurringExpenses,
+  onAddRecurringExpense,
+  onDeleteRecurringExpense,
 }) => {
   return (
     <Sheet>
@@ -46,7 +52,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             monthlyIncomes={monthlyIncomes}
             defaultMonthlyIncome={defaultMonthlyIncome}
             onSaveIncome={onSaveIncome}
-            // Removed selectedMonth, setSelectedMonth, selectedYear, setSelectedYear, availableYears
+          />
+          <RecurringExpenseManager
+            recurringExpenses={recurringExpenses}
+            categories={categories}
+            onAddRecurringExpense={onAddRecurringExpense}
+            onDeleteRecurringExpense={onDeleteRecurringExpense}
           />
         </div>
       </SheetContent>
