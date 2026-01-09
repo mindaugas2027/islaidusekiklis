@@ -8,6 +8,7 @@ import { Expense } from "@/types/expense";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import MonthYearNavigator from "@/components/MonthYearNavigator"; // Naujas importas
 
 const DEFAULT_CATEGORIES = [
   "Maistas", "Kuras", "Pramogos", "Transportas", "Būstas",
@@ -191,48 +192,20 @@ const Index = () => {
         monthlyIncomes={monthlyIncomes}
         defaultMonthlyIncome={defaultMonthlyIncome}
         onSaveIncome={handleSaveIncome}
-        selectedMonth={selectedMonth}
-        setSelectedMonth={setSelectedMonth}
-        selectedYear={selectedYear}
-        setSelectedYear={setSelectedYear}
-        availableYears={availableYears}
+        // Removed selectedMonth, setSelectedMonth, selectedYear, setSelectedYear, availableYears
       />
       <div className="max-w-6xl mx-auto space-y-8">
         <h1 className="text-5xl font-extrabold text-center mb-10">
           Išlaidų Sekiklis
         </h1>
 
-        <div className="flex flex-col sm:flex-row gap-4 mb-6 justify-center">
-          <div className="flex-1">
-            <Label htmlFor="month-select">Mėnuo</Label>
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger id="month-select">
-                <SelectValue placeholder="Pasirinkite mėnesį" />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((month) => (
-                  <SelectItem key={month.value} value={month.value}>
-                    {month.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex-1">
-            <Label htmlFor="year-select">Metai</Label>
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger id="year-select">
-                <SelectValue placeholder="Pasirinkite metus" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableYears.map((year) => (
-                  <SelectItem key={year} value={year}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="mb-6 flex justify-center">
+          <MonthYearNavigator
+            selectedMonth={selectedMonth}
+            setSelectedMonth={setSelectedMonth}
+            selectedYear={selectedYear}
+            setSelectedYear={setSelectedYear}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -240,7 +213,7 @@ const Index = () => {
           <IncomeTracker
             monthlyIncome={currentMonthIncome}
             totalExpenses={totalExpensesForSelectedMonth}
-            previousMonthCarryOver={previousMonthCarryOver} // Perduodame naują prop
+            previousMonthCarryOver={previousMonthCarryOver}
           />
         </div>
 

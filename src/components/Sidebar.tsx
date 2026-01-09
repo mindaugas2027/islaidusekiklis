@@ -12,11 +12,7 @@ interface SidebarProps {
   monthlyIncomes: { [key: string]: number };
   defaultMonthlyIncome: number;
   onSaveIncome: (income: number, type: 'default' | 'month', monthYear?: string) => void;
-  selectedMonth: string;
-  setSelectedMonth: (month: string) => void; // Nauja prop
-  selectedYear: string;
-  setSelectedYear: (year: string) => void; // Nauja prop
-  availableYears: string[]; // Nauja prop
+  // Removed selectedMonth, setSelectedMonth, selectedYear, setSelectedYear, availableYears
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -26,11 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   monthlyIncomes,
   defaultMonthlyIncome,
   onSaveIncome,
-  selectedMonth,
-  setSelectedMonth,
-  selectedYear,
-  setSelectedYear,
-  availableYears,
+  // Removed selectedMonth, setSelectedMonth, selectedYear, setSelectedYear, availableYears
 }) => {
   return (
     <Sheet>
@@ -54,11 +46,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             monthlyIncomes={monthlyIncomes}
             defaultMonthlyIncome={defaultMonthlyIncome}
             onSaveIncome={onSaveIncome}
-            selectedMonth={selectedMonth}
-            setSelectedMonth={setSelectedMonth} // Perduodame toliau
-            selectedYear={selectedYear}
-            setSelectedYear={setSelectedYear} // Perduodame toliau
-            availableYears={availableYears} // Perduodame toliau
+            // Removed selectedMonth, setSelectedMonth, selectedYear, setSelectedYear, availableYears
           />
         </div>
       </SheetContent>

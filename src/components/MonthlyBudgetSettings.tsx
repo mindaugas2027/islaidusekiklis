@@ -1,23 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Importuojame Select komponentus
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface MonthlyBudgetSettingsProps {
   monthlyIncomes: { [key: string]: number };
   defaultMonthlyIncome: number;
   onSaveIncome: (income: number, type: 'default' | 'month', monthYear?: string) => void;
-  selectedMonth: string;
-  setSelectedMonth: (month: string) => void; // Nauja prop
-  selectedYear: string;
-  setSelectedYear: (year: string) => void; // Nauja prop
-  availableYears: string[]; // Nauja prop
+  // Removed selectedMonth, setSelectedMonth, selectedYear, setSelectedYear, availableYears
 }
 
-const months = [ // Perkeliame mėnesių sąrašą čia, kad būtų prieinamas
+const months = [
   { value: "01", label: "Sausis" },
   { value: "02", label: "Vasaris" },
   { value: "03", label: "Kovas" },
@@ -36,25 +32,36 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
   monthlyIncomes,
   defaultMonthlyIncome,
   onSaveIncome,
-  selectedMonth,
-  setSelectedMonth,
-  selectedYear,
-  setSelectedYear,
-  availableYears,
 }) => {
-  const selectedMonthYear = `${selectedYear}-${selectedMonth}`;
-  const currentMonthSpecificIncome = monthlyIncomes[selectedMonthYear];
+  const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+  const currentYear = String(new Date().getFullYear());
+
+  const [editingMonth, setEditingMonth] = useState<string>(currentMonth);
+  const [editingYear, setEditingYear] = useState<string>(currentYear);
+
+  const editingMonthYear = `${editingYear}-${editingMonth}`;
+  const currentMonthSpecificIncome = monthlyIncomes[editingMonthYear];
 
   const [inputMonthIncome, setInputMonthIncome] = useState<string>(
     currentMonthSpecificIncome !== undefined ? currentMonthSpecificIncome.toFixed(2) : ""
   );
   const [inputDefaultIncome, setInputDefaultIncome] = useState<string>(defaultMonthlyIncome.toFixed(2));
 
+  // Generate available years for the settings dropdown
+  const availableYearsForSettings = useMemo(() => {
+    const years = new Set<string>();
+    const current = new Date().getFullYear();
+    for (let i = current - 5; i <= current + 5; i++) { // Show a range of years
+      years.add(String(i));
+    }
+    return Array.from(years).sort((a, b) => parseInt(b) - parseInt(a));
+  }, []);
+
   useEffect(() => {
     setInputMonthIncome(
       currentMonthSpecificIncome !== undefined ? currentMonthSpecificIncome.toFixed(2) : ""
     );
-  }, [currentMonthSpecificIncome]);
+  }, [currentMonthSpecificIncome, editingMonth, editingYear]); // Added editingMonth, editingYear to dependencies
 
   useEffect(() => {
     setInputDefaultIncome(defaultMonthlyIncome.toFixed(2));
@@ -66,7 +73,7 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
       toast.error("Prašome įvesti teigiamą pajamų sumą pasirinktam mėnesiui.");
       return;
     }
-    onSaveIncome(parsedIncome, 'month', selectedMonthYear);
+    onSaveIncome(parsedIncome, 'month', editingMonthYear);
   };
 
   const handleSaveDefaultIncome = () => {
@@ -87,7 +94,7 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <div className="flex-1">
             <Label htmlFor="month-select-settings">Mėnuo</Label>
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <Select value={editingMonth} onValueChange={setEditingMonth}>
               <SelectTrigger id="month-select-settings">
                 <SelectValue placeholder="Pasirinkite mėnesį" />
               </SelectTrigger>
@@ -102,12 +109,12 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
           </div>
           <div className="flex-1">
             <Label htmlFor="year-select-settings">Metai</Label>
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <Select value={editingYear} onValueChange={setEditingYear}>
               <SelectTrigger id="year-select-settings">
                 <SelectValue placeholder="Pasirinkite metus" />
               </SelectTrigger>
               <SelectContent>
-                {availableYears.map((year) => (
+                {availableYearsForSettings.map((year) => (
                   <SelectItem key={year} value={year}>
                     {year}
                   </SelectItem>
@@ -119,7 +126,7 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
 
         <div>
           <Label htmlFor="month-income-input" className="text-lg font-semibold">
-            Pajamos pasirinktam mėnesiui ({selectedMonthYear})
+            Pajamos pasirinktam mėnesiui ({editingMonthYear})
           </Label>
           <div className="flex gap-2 mt-1">
             <Input
