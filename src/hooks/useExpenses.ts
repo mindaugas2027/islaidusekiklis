@@ -9,6 +9,7 @@ export const useExpenses = () => {
 
   useEffect(() => {
     fetchExpenses();
+    
     const channel = supabase
       .channel('expenses-changes')
       .on(
@@ -22,8 +23,8 @@ export const useExpenses = () => {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'expenses' },
         (payload) => {
-          setExpenses((prev) => 
-            prev.map((expense) => 
+          setExpenses((prev) =>
+            prev.map((expense) =>
               expense.id === payload.new.id ? (payload.new as Expense) : expense
             )
           );
