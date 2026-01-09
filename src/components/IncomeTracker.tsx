@@ -4,13 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 interface IncomeTrackerProps {
   monthlyIncome: number;
   totalExpenses: number;
-  previousMonthCarryOver: number;
+  previousMonthCarryOver: number; // Nors prop'as lieka, jis nebebus rodomas
 }
 
 const IncomeTracker: React.FC<IncomeTrackerProps> = ({ monthlyIncome, totalExpenses, previousMonthCarryOver }) => {
-  const remainingBudget = monthlyIncome - totalExpenses; // Grąžinta prie pradinio skaičiavimo
+  const remainingBudget = monthlyIncome - totalExpenses;
   const isOverBudget = remainingBudget < 0;
-  const isPreviousMonthOverBudget = previousMonthCarryOver < 0;
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -23,11 +22,7 @@ const IncomeTracker: React.FC<IncomeTrackerProps> = ({ monthlyIncome, totalExpen
         <p className={`font-bold ${isOverBudget ? "text-destructive" : "text-green-600"}`}>
           {isOverBudget ? "Viršytas biudžetas:" : "Liko biudžeto:"} {remainingBudget.toFixed(2)} €
         </p>
-        <div className="border-t pt-4 mt-4">
-          <p className={`font-semibold ${isPreviousMonthOverBudget ? "text-destructive" : "text-green-600"}`}>
-            {isPreviousMonthOverBudget ? "Praėjusio mėnesio viršijimas:" : "Praėjusio mėnesio likutis:"} {previousMonthCarryOver.toFixed(2)} €
-          </p>
-        </div>
+        {/* Pašalinta praėjusio mėnesio likučio/viršijimo eilutė */}
       </CardContent>
     </Card>
   );
