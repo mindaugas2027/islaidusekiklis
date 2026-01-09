@@ -3,7 +3,6 @@ import {
   BarChart,
   Bar,
   XAxis,
-  YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
@@ -30,7 +29,7 @@ const BudgetOverviewChart: React.FC<BudgetOverviewChartProps> = ({ monthlyIncome
     // If over budget, show total expenses and the deficit
     chartData = [
       {
-        name: "Mėnesio biudžetas",
+        name: "Mėnesio biudžetas", // 'name' property is still useful for Tooltip/Legend, even if YAxis is hidden
         pajamos: monthlyIncome,
         išlaidos: totalExpenses,
         deficitas: Math.abs(remainingBudget),
@@ -44,7 +43,7 @@ const BudgetOverviewChart: React.FC<BudgetOverviewChartProps> = ({ monthlyIncome
     // Within budget, show used and remaining as a stacked bar
     chartData = [
       {
-        name: "Mėnesio biudžetas",
+        name: "Mėnesio biudžetas", // 'name' property is still useful for Tooltip/Legend, even if YAxis is hidden
         panaudota: totalExpenses,
         liko: remainingBudget,
       },
@@ -81,13 +80,13 @@ const BudgetOverviewChart: React.FC<BudgetOverviewChartProps> = ({ monthlyIncome
                 margin={{
                   top: 20,
                   right: 30,
-                  left: 60, // Padidinta kairioji paraštė
+                  left: 20, // Grąžiname mažesnę paraštę, nes YAxis neberodomas
                   bottom: 5,
                 }}
               >
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--muted))" />
                 <XAxis type="number" stroke="hsl(var(--foreground))" />
-                <YAxis dataKey="name" type="category" stroke="hsl(var(--foreground))" />
+                {/* YAxis pašalintas, kad nebūtų rodomas užrašas "Mėnesio biudžetas" */}
                 <Tooltip
                   formatter={(value: number) => `${value.toFixed(2)} €`}
                   contentStyle={{
