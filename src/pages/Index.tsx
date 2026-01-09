@@ -44,10 +44,10 @@ const months = [
 ];
 
 const Index = () => {
-  const { expenses, loading: expensesLoading, addExpense, deleteExpense } = useExpenses();
-  const { categories, loading: categoriesLoading, addCategory, deleteCategory } = useCategories();
-  const { monthlyIncomes, defaultMonthlyIncome, saveIncome } = useMonthlyIncomes();
-  const { recurringExpenses, addRecurringExpense, deleteRecurringExpense } = useRecurringExpenses();
+  const { expenses, loading: expensesLoading, addExpense, deleteExpense, fetchExpenses } = useExpenses();
+  const { categories, loading: categoriesLoading, addCategory, deleteCategory, fetchCategories } = useCategories();
+  const { monthlyIncomes, defaultMonthlyIncome, saveIncome, fetchMonthlyIncomes } = useMonthlyIncomes();
+  const { recurringExpenses, addRecurringExpense, deleteRecurringExpense, fetchRecurringExpenses } = useRecurringExpenses();
   
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
   const currentYear = String(new Date().getFullYear());
@@ -112,15 +112,36 @@ const Index = () => {
   }, [selectedMonth, selectedYear, recurringExpenses]);
 
   const handleAddExpense = async (newExpense: Omit<Expense, 'id'>) => {
-    await addExpense(newExpense);
+    try {
+      await addExpense(newExpense);
+      // Refresh to ensure UI is updated
+      await fetchExpenses();
+    } catch (error) {
+      toast.error("Nepavyko pridėti išlaidos");
+      throw error;
+    }
   };
 
   const handleDeleteExpense = async (id: string) => {
-    await deleteExpense(id);
+    try {
+      await deleteExpense(id);
+      // Refresh to ensure UI is updated
+      await fetchExpenses();
+    } catch (error) {
+      toast.error("Nepavyko ištrinti išlaidos");
+      throw error;
+    }
   };
 
   const handleAddCategory = async (newCategory: string) => {
-    await addCategory(newCategory);
+    try {
+      await addCategory(newCategory);
+      // Refresh to ensure UI is updated
+      await fetchCategories();
+    } catch (error) {
+      toast.error("Nepavyko pridėti kategorijos");
+      throw error;
+    }
   };
 
   const handleDeleteCategory = async (categoryToDelete: string) => {
@@ -140,19 +161,47 @@ const Index = () => {
       return;
     }
     
-    await deleteCategory(categoryToDelete);
+    try {
+      await deleteCategory(categoryToDelete);
+      // Refresh to ensure UI is updated
+      await fetchCategories();
+    } catch (error) {
+      toast.error("Nepavyko ištrinti kategorijos");
+      throw error;
+    }
   };
 
   const handleSaveIncome = async (income: number, type: 'default' | 'month', monthYear?: string) => {
-    await saveIncome(income, type, monthYear);
+    try {
+      await saveIncome(income, type, monthYear);
+      // Refresh to ensure UI is updated
+      await fetchMonthlyIncomes();
+    } catch (error) {
+      toast.error("Nepavyko išsaugoti pajamų");
+      throw error;
+    }
   };
 
   const handleAddRecurringExpense = async (newRecExpense: Omit<RecurringExpense, "id">) => {
-    await addRecurringExpense(newRecExpense);
+    try {
+      await addRecurringExpense(newRecExpense);
+      // Refresh to ensure UI is updated
+      await fetchRecurringExpenses();
+    } catch (error) {
+      toast.error("Nepavyko pridėti pasikartojančios išlaidos");
+      throw error;
+    }
   };
 
   const handleDeleteRecurringExpense = async (id: string) => {
-    await deleteRecurringExpense(id);
+    try {
+      await deleteRecurringExpense(id);
+      // Refresh to ensure UI is updated
+      await fetchRecurringExpenses();
+    } catch (error) {
+      toast.error("Nepavyko ištrinti pasikartojančios išlaidos");
+      throw error;
+    }
   };
 
   const availableYears = useMemo(() => {

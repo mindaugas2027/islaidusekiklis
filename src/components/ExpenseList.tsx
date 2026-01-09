@@ -8,13 +8,22 @@ import { toast } from "sonner";
 
 interface ExpenseListProps {
   expenses: Expense[];
-  onDeleteExpense: (id: string) => void;
+  onDeleteExpense: (id: string) => Promise<void>;
 }
 
 const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDeleteExpense }) => {
-  const handleDelete = (id: string) => {
-    onDeleteExpense(id);
-    toast.success("Išlaida sėkmingai ištrinta.");
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      await onDeleteExpense(id);
+      toast.success("Išlaida sėkmingai ištrinta.");
+    } catch (error) {
+      toast.error("Nepavyko ištrinti išlaidos");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -47,12 +56,17 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDeleteExpense }) 
                       <TableCell>{expense.category}</TableCell>
                       <TableCell className="text-right">{expense.amount.toFixed(2)}</TableCell>
                       <TableCell className="text-right">
-                        <Button 
-                          variant="destructive" 
-                          size="sm" 
+                        <Button
+                          variant="destructive"
+                          size="sm"
                           onClick={() => handleDelete(expense.id)}
+                          disabled={deletingId === expense.id}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {deletingId === expense.id ? (
+                            "Trinama..."
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </Button>
                       </TableCell>
                     </TableRow>

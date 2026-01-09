@@ -8,18 +8,16 @@ import { X } from "lucide-react";
 
 interface CategoryManagerProps {
   categories: string[];
-  onAddCategory: (category: string) => void;
-  onDeleteCategory: (category: string) => void;
+  onAddCategory: (category: string) => Promise<void>;
+  onDeleteCategory: (category: string) => Promise<void>;
 }
 
-const CategoryManager: React.FC<CategoryManagerProps> = ({
-  categories,
-  onAddCategory,
-  onDeleteCategory,
-}) => {
+const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCategory, onDeleteCategory }) => {
   const [newCategoryName, setNewCategoryName] = useState<string>("");
+  const [isAdding, setIsAdding] = useState(false);
+  const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
 
-  const handleAddCategory = (e: React.FormEvent) => {
+  const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedName = newCategoryName.trim();
     
@@ -32,10 +30,29 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
       toast.error("Tokia kategorija jau egzistuoja.");
       return;
     }
+    
+    setIsAdding(true);
+    try {
+      await onAddCategory(trimmedName);
+      setNewCategoryName("");
+      toast.success(`Kategorija "${trimmedName}" pridėta.`);
+    } catch (error) {
+      toast.error("Nepavyko pridėti kategorijos");
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
-    onAddCategory(trimmedName);
-    setNewCategoryName("");
-    toast.success(`Kategorija "${trimmedName}" pridėta.`);
+  const handleDeleteCategory = async (category: string) => {
+    setDeletingCategory(category);
+    try {
+      await onDeleteCategory(category);
+      toast.success(`Kategorija "${category}" ištrinta.`);
+    } catch (error) {
+      toast.error("Nepavyko ištrinti kategorijos");
+    } finally {
+      setDeletingCategory(null);
+    }
   };
 
   return (
@@ -45,14 +62,17 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         <form onSubmit={handleAddCategory} className="flex gap-2">
-          <Input 
-            type="text" 
+          <Input
+            type="text"
             placeholder="Naujos kategorijos pavadinimas"
-            value={newCategoryName} 
-            onChange={(e) => setNewCategoryName(e.target.value)} 
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
             className="flex-grow"
+            disabled={isAdding}
           />
-          <Button type="submit">Pridėti</Button>
+          <Button type="submit" disabled={isAdding}>
+            {isAdding ? "Pridedama..." : "Pridėti"}
+          </Button>
         </form>
         
         {categories.length === 0 ? (
@@ -62,18 +82,23 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
             <Label className="text-lg font-semibold">Esamos kategorijos:</Label>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {categories.map((category) => (
-                <li 
-                  key={category} 
+                <li
+                  key={category}
                   className="flex items-center justify-between p-2 border rounded-md bg-secondary text-secondary-foreground"
                 >
                   <span>{category}</span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => onDeleteCategory(category)}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteCategory(category)}
                     className="h-auto p-1"
+                    disabled={deletingCategory === category}
                   >
-                    <X className="h-4 w-4 text-destructive" />
+                    {deletingCategory === category ? (
+                      "Trinama..."
+                    ) : (
+                      <X className="h-4 w-4 text-destructive" />
+                    )}
                   </Button>
                 </li>
               ))}

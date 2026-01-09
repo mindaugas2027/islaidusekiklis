@@ -11,8 +11,8 @@ import { toast } from "sonner";
 
 interface SidebarProps {
   categories: string[];
-  onAddCategory: (category: string) => void;
-  onDeleteCategory: (category: string) => void;
+  onAddCategory: (category: string) => Promise<void>;
+  onDeleteCategory: (category: string) => Promise<void>;
   monthlyIncomes: { [key: string]: number };
   defaultMonthlyIncome: number;
   onSaveIncome: (income: number, type: 'default' | 'month', monthYear?: string) => void;
@@ -56,27 +56,23 @@ const Sidebar: React.FC<SidebarProps> = ({
         </SheetHeader>
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           <CategoryManager 
-            categories={categories}
-            onAddCategory={onAddCategory}
-            onDeleteCategory={onDeleteCategory}
+            categories={categories} 
+            onAddCategory={onAddCategory} 
+            onDeleteCategory={onDeleteCategory} 
           />
-          
           <MonthlyBudgetSettings 
-            monthlyIncomes={monthlyIncomes}
-            defaultMonthlyIncome={defaultMonthlyIncome}
-            onSaveIncome={onSaveIncome}
+            monthlyIncomes={monthlyIncomes} 
+            defaultMonthlyIncome={defaultMonthlyIncome} 
+            onSaveIncome={onSaveIncome} 
           />
-          
           <RecurringExpenseManager 
-            recurringExpenses={recurringExpenses}
-            categories={categories}
-            onAddRecurringExpense={onAddRecurringExpense}
-            onDeleteRecurringExpense={onDeleteRecurringExpense}
+            recurringExpenses={recurringExpenses} 
+            categories={categories} 
+            onAddRecurringExpense={onAddRecurringExpense} 
+            onDeleteRecurringExpense={onDeleteRecurringExpense} 
           />
-          
           <Button variant="destructive" className="w-full mt-4" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Atsijungti
+            <LogOut className="mr-2 h-4 w-4" /> Atsijungti
           </Button>
         </div>
       </SheetContent>
