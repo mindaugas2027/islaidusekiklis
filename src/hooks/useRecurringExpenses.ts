@@ -23,8 +23,8 @@ export const useRecurringExpenses = () => {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'recurring_expenses' },
         (payload) => {
-          setRecurringExpenses((prev) =>
-            prev.map((expense) =>
+          setRecurringExpenses((prev) => 
+            prev.map((expense) => 
               expense.id === payload.new.id ? (payload.new as RecurringExpense) : expense
             )
           );
@@ -34,7 +34,9 @@ export const useRecurringExpenses = () => {
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'recurring_expenses' },
         (payload) => {
-          setRecurringExpenses((prev) => prev.filter((expense) => expense.id !== payload.old.id));
+          setRecurringExpenses((prev) => 
+            prev.filter((expense) => expense.id !== payload.old.id)
+          );
         }
       )
       .subscribe();
@@ -50,7 +52,7 @@ export const useRecurringExpenses = () => {
       .from('recurring_expenses')
       .select('*')
       .order('name');
-
+    
     if (error) {
       toast.error("Nepavyko įkelti pasikartojančių išlaidų");
       console.error(error);
@@ -61,19 +63,23 @@ export const useRecurringExpenses = () => {
   };
 
   const addRecurringExpense = async (expense: Omit<RecurringExpense, 'id'>) => {
-    // Remove manual ID generation
     const { data, error } = await supabase
       .from('recurring_expenses')
-      .insert([{ ...expense }])
+      .insert([{
+        name: expense.name,
+        amount: expense.amount,
+        category: expense.category,
+        day_of_month: expense.day_of_month // Use correct column name
+      }])
       .select()
       .single();
-
+    
     if (error) {
       toast.error("Nepavyko pridėti pasikartojančios išlaidos");
       console.error(error);
       return null;
     }
-
+    
     toast.success(`Pasikartojanti išlaida "${expense.name}" pridėta.`);
     return data as RecurringExpense;
   };
@@ -83,16 +89,22 @@ export const useRecurringExpenses = () => {
       .from('recurring_expenses')
       .delete()
       .eq('id', id);
-
+    
     if (error) {
       toast.error("Nepavyko ištrinti pasikartojančios išlaidos");
       console.error(error);
       return false;
     }
-
+    
     toast.success("Pasikartojanti išlaida sėkmingai ištrinta.");
     return true;
   };
 
-  return { recurringExpenses, loading, addRecurringExpense, deleteRecurringExpense, fetchRecurringExpenses };
+  return {
+    recurringExpenses,
+    loading,
+    addRecurringExpense,
+    deleteRecurringExpense,
+    fetchRecurringExpenses
+  };
 };

@@ -90,9 +90,9 @@ const Index = () => {
       const currentMonthYearPrefix = `${selectedYear}-${selectedMonth}`;
       
       recurringExpenses.forEach(recExpense => {
-        if (recExpense.dayOfMonth <= maxDayToShow) {
-          const tempDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, recExpense.dayOfMonth);
-          const actualDay = Math.min(recExpense.dayOfMonth, lastDayOfMonth(tempDate).getDate());
+        if (recExpense.day_of_month <= maxDayToShow) { // Use correct column name
+          const tempDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, recExpense.day_of_month);
+          const actualDay = Math.min(recExpense.day_of_month, lastDayOfMonth(tempDate).getDate());
           const expenseDate = format(new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, actualDay), 'yyyy-MM-dd');
           
           recurringExpensesForSelectedMonthYear.push({

@@ -3,5 +3,5 @@ export interface RecurringExpense {
   name: string;
   amount: number;
   category: string;
-  dayOfMonth: number; // Day of the month (1-31)
+  day_of_month: number; // Changed to match database column name
 }
