@@ -164,7 +164,10 @@ const Index = () => {
         defaultMonthlyIncome={defaultMonthlyIncome}
         onSaveIncome={handleSaveIncome}
         selectedMonth={selectedMonth}
+        setSelectedMonth={setSelectedMonth} // Perduodame setSelectedMonth
         selectedYear={selectedYear}
+        setSelectedYear={setSelectedYear} // Perduodame setSelectedYear
+        availableYears={availableYears} // Perduodame availableYears
       />
       <div className="max-w-6xl mx-auto space-y-8">
         <h1 className="text-5xl font-extrabold text-center mb-10">

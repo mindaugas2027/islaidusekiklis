@@ -4,21 +4,43 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Importuojame Select komponentus
 
 interface MonthlyBudgetSettingsProps {
   monthlyIncomes: { [key: string]: number };
   defaultMonthlyIncome: number;
   onSaveIncome: (income: number, type: 'default' | 'month', monthYear?: string) => void;
   selectedMonth: string;
+  setSelectedMonth: (month: string) => void; // Nauja prop
   selectedYear: string;
+  setSelectedYear: (year: string) => void; // Nauja prop
+  availableYears: string[]; // Nauja prop
 }
+
+const months = [ // Perkeliame mėnesių sąrašą čia, kad būtų prieinamas
+  { value: "01", label: "Sausis" },
+  { value: "02", label: "Vasaris" },
+  { value: "03", label: "Kovas" },
+  { value: "04", label: "Balandis" },
+  { value: "05", label: "Gegužė" },
+  { value: "06", label: "Birželis" },
+  { value: "07", label: "Liepa" },
+  { value: "08", label: "Rugpjūtis" },
+  { value: "09", label: "Rugsėjis" },
+  { value: "10", label: "Spalis" },
+  { value: "11", label: "Lapkritis" },
+  { value: "12", label: "Gruodis" },
+];
 
 const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
   monthlyIncomes,
   defaultMonthlyIncome,
   onSaveIncome,
   selectedMonth,
+  setSelectedMonth,
   selectedYear,
+  setSelectedYear,
+  availableYears,
 }) => {
   const selectedMonthYear = `${selectedYear}-${selectedMonth}`;
   const currentMonthSpecificIncome = monthlyIncomes[selectedMonthYear];
@@ -62,6 +84,39 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
         <CardTitle className="text-2xl font-bold text-center">Mėnesio pajamų nustatymai</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex-1">
+            <Label htmlFor="month-select-settings">Mėnuo</Label>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger id="month-select-settings">
+                <SelectValue placeholder="Pasirinkite mėnesį" />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map((month) => (
+                  <SelectItem key={month.value} value={month.value}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1">
+            <Label htmlFor="year-select-settings">Metai</Label>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger id="year-select-settings">
+                <SelectValue placeholder="Pasirinkite metus" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableYears.map((year) => (
+                  <SelectItem key={year} value={year}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <div>
           <Label htmlFor="month-income-input" className="text-lg font-semibold">
             Pajamos pasirinktam mėnesiui ({selectedMonthYear})
