@@ -1,11 +1,13 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Settings } from "lucide-react";
+import { Settings, LogOut } from "lucide-react";
 import CategoryManager from "./CategoryManager";
 import MonthlyBudgetSettings from "./MonthlyBudgetSettings";
 import RecurringExpenseManager from "./RecurringExpenseManager";
 import { RecurringExpense } from "@/types/recurringExpense";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SidebarProps {
   categories: string[];
@@ -30,6 +32,16 @@ const Sidebar: React.FC<SidebarProps> = ({
   onAddRecurringExpense,
   onDeleteRecurringExpense,
 }) => {
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Nepavyko atsijungti");
+      console.error(error);
+    } else {
+      toast.success("Sėkmingai atsijungta");
+    }
+  };
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -59,6 +71,14 @@ const Sidebar: React.FC<SidebarProps> = ({
             onAddRecurringExpense={onAddRecurringExpense}
             onDeleteRecurringExpense={onDeleteRecurringExpense}
           />
+          <Button
+            variant="destructive"
+            className="w-full mt-4"
+            onClick={handleLogout}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Atsijungti
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
