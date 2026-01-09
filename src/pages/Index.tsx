@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import ExpenseForm from "@/components/ExpenseForm";
 import ExpenseList from "@/components/ExpenseList";
 import ExpenseChart from "@/components/ExpenseChart";
-import { Expense } from "@/types/expense"; // Using @ alias
+import IncomeTracker from "@/components/IncomeTracker"; // Import IncomeTracker
+import { Expense } from "@/types/expense";
 
 const Index = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -29,18 +30,34 @@ const Index = () => {
     setExpenses((prevExpenses) => prevExpenses.filter((expense) => expense.id !== id));
   };
 
+  // Calculate total expenses for the current month/year for the IncomeTracker
+  const totalExpenses = useMemo(() => {
+    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+    const currentYear = String(new Date().getFullYear());
+
+    const monthlyExpenses = expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      const expenseMonth = String(expenseDate.getMonth() + 1).padStart(2, '0');
+      const expenseYear = String(expenseDate.getFullYear());
+      return expenseMonth === currentMonth && expenseYear === currentYear;
+    });
+    return monthlyExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  }, [expenses]);
+
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto space-y-8">
-        <h1 className="text-5xl font-extrabold text-center text-gray-900 dark:text-gray-50 mb-10">
+        <h1 className="text-5xl font-extrabold text-center mb-10">
           Išlaidų Sekiklis
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <ExpenseForm onAddExpense={handleAddExpense} />
-          <ExpenseChart expenses={expenses} />
+          <IncomeTracker totalExpenses={totalExpenses} /> {/* Add IncomeTracker */}
         </div>
 
+        <ExpenseChart expenses={expenses} />
         <ExpenseList expenses={expenses} onDeleteExpense={handleDeleteExpense} />
       </div>
       <MadeWithDyad />
