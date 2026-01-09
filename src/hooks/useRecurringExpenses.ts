@@ -57,41 +57,79 @@ export const useRecurringExpenses = () => {
   }, [refreshRecurringExpenses]);
 
   const addRecurringExpense = async (expense: Omit<RecurringExpense, 'id'>) => {
-    const { data, error } = await supabase
-      .from('recurring_expenses')
-      .insert([{
-        name: expense.name,
-        amount: expense.amount,
-        category: expense.category,
-        day_of_month: expense.day_of_month
-      }])
-      .select()
-      .single();
+    // Optimistically update UI
+    const tempId = `temp-${Date.now()}`;
+    const tempExpense: RecurringExpense = {
+      ...expense,
+      id: tempId,
+    };
     
-    if (error) {
+    setRecurringExpenses(prevExpenses => [...prevExpenses, tempExpense].sort((a, b) => a.name.localeCompare(b.name)));
+    
+    try {
+      const { data, error } = await supabase
+        .from('recurring_expenses')
+        .insert([{
+          name: expense.name,
+          amount: expense.amount,
+          category: expense.category,
+          day_of_month: expense.day_of_month
+        }])
+        .select()
+        .single();
+      
+      if (error) {
+        // Revert optimistic update on error
+        setRecurringExpenses(prevExpenses => prevExpenses.filter(exp => exp.id !== tempId));
+        toast.error("Nepavyko pridėti pasikartojančios išlaidos");
+        console.error(error);
+        return null;
+      }
+      
+      // Replace temporary expense with actual data from backend
+      setRecurringExpenses(prevExpenses => {
+        const withoutTemp = prevExpenses.filter(exp => exp.id !== tempId);
+        return [...withoutTemp, data as RecurringExpense].sort((a, b) => a.name.localeCompare(b.name));
+      });
+
+      toast.success(`Pasikartojanti išlaida "${expense.name}" pridėta.`);
+      return data as RecurringExpense;
+    } catch (error) {
+      // Revert optimistic update on error
+      setRecurringExpenses(prevExpenses => prevExpenses.filter(exp => exp.id !== tempId));
       toast.error("Nepavyko pridėti pasikartojančios išlaidos");
       console.error(error);
       return null;
     }
-    
-    toast.success(`Pasikartojanti išlaida "${expense.name}" pridėta.`);
-    return data as RecurringExpense;
   };
 
   const deleteRecurringExpense = async (id: string) => {
-    const { error } = await supabase
-      .from('recurring_expenses')
-      .delete()
-      .eq('id', id);
-    
-    if (error) {
+    // Optimistically update UI
+    setRecurringExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== id));
+
+    try {
+      const { error } = await supabase
+        .from('recurring_expenses')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        // Revert optimistic update on error
+        refreshRecurringExpenses();
+        toast.error("Nepavyko ištrinti pasikartojančios išlaidos");
+        console.error(error);
+        return false;
+      }
+      
+      toast.success("Pasikartojanti išlaida sėkmingai ištrinta.");
+      return true;
+    } catch (error) {
+      // Revert optimistic update on error
+      refreshRecurringExpenses();
       toast.error("Nepavyko ištrinti pasikartojančios išlaidos");
       console.error(error);
       return false;
     }
-    
-    toast.success("Pasikartojanti išlaida sėkmingai ištrinta.");
-    return true;
   };
 
   return {
