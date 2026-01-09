@@ -8,14 +8,24 @@ import MonthlyLineChart from "@/components/MonthlyLineChart";
 import { Expense } from "@/types/expense";
 import { RecurringExpense } from "@/types/recurringExpense";
 import { toast } from "sonner";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import MonthYearNavigator from "@/components/MonthYearNavigator";
-import { format, lastDayOfMonth, isValid } from "date-fns";
+import { format, lastDayOfMonth } from "date-fns";
+import { useExpenses } from "@/hooks/useExpenses";
+import { useCategories } from "@/hooks/useCategories";
+import { useMonthlyIncomes } from "@/hooks/useMonthlyIncomes";
+import { useRecurringExpenses } from "@/hooks/useRecurringExpenses";
 
 const DEFAULT_CATEGORIES = [
-  "Maistas", "Kuras", "Pramogos", "Transportas", "Būstas",
-  "Komunalinės paslaugos", "Sveikata", "Mokslas", "Apranga", "Kita"
+  "Maistas",
+  "Kuras",
+  "Pramogos",
+  "Transportas",
+  "Būstas",
+  "Komunalinės paslaugos",
+  "Sveikata",
+  "Mokslas",
+  "Apranga",
+  "Kita"
 ];
 
 const months = [
@@ -34,71 +44,25 @@ const months = [
 ];
 
 const Index = () => {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [monthlyIncomes, setMonthlyIncomes] = useState<{ [key: string]: number }>({});
-  const [defaultMonthlyIncome, setDefaultMonthlyIncome] = useState<number>(0);
-  const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([]);
-
+  const { expenses, loading: expensesLoading, addExpense, deleteExpense } = useExpenses();
+  const { categories, loading: categoriesLoading, addCategory, deleteCategory } = useCategories();
+  const { monthlyIncomes, defaultMonthlyIncome, saveIncome } = useMonthlyIncomes();
+  const { recurringExpenses, addRecurringExpense, deleteRecurringExpense } = useRecurringExpenses();
+  
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
   const currentYear = String(new Date().getFullYear());
-
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
   const [selectedYear, setSelectedYear] = useState<string>(currentYear);
 
-  // Load data from localStorage on initial render
+  // Initialize with default categories if none exist
   useEffect(() => {
-    const storedExpenses = localStorage.getItem("expenses");
-    if (storedExpenses) {
-      setExpenses(JSON.parse(storedExpenses));
+    if (!categoriesLoading && categories.length === 0) {
+      // Add default categories
+      DEFAULT_CATEGORIES.forEach(cat => {
+        addCategory(cat);
+      });
     }
-
-    const storedCategories = localStorage.getItem("categories");
-    if (storedCategories) {
-      setCategories(JSON.parse(storedCategories));
-    } else {
-      setCategories(DEFAULT_CATEGORIES);
-    }
-
-    const storedMonthlyIncomes = localStorage.getItem("monthlyIncomes");
-    if (storedMonthlyIncomes) {
-      setMonthlyIncomes(JSON.parse(storedMonthlyIncomes));
-    }
-
-    const storedDefaultIncome = localStorage.getItem("defaultMonthlyIncome");
-    if (storedDefaultIncome) {
-      const parsedIncome = parseFloat(storedDefaultIncome);
-      if (!isNaN(parsedIncome)) {
-        setDefaultMonthlyIncome(parsedIncome);
-      }
-    }
-
-    const storedRecurringExpenses = localStorage.getItem("recurringExpenses");
-    if (storedRecurringExpenses) {
-      setRecurringExpenses(JSON.parse(storedRecurringExpenses));
-    }
-  }, []);
-
-  // Save data to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem("expenses", JSON.stringify(expenses));
-  }, [expenses]);
-
-  useEffect(() => {
-    localStorage.setItem("categories", JSON.stringify(categories));
-  }, [categories]);
-
-  useEffect(() => {
-    localStorage.setItem("monthlyIncomes", JSON.stringify(monthlyIncomes));
-  }, [monthlyIncomes]);
-
-  useEffect(() => {
-    localStorage.setItem("defaultMonthlyIncome", defaultMonthlyIncome.toString());
-  }, [defaultMonthlyIncome]);
-
-  useEffect(() => {
-    localStorage.setItem("recurringExpenses", JSON.stringify(recurringExpenses));
-  }, [recurringExpenses]);
+  }, [categoriesLoading, categories]);
 
   // Logic to automatically add recurring expenses for the selected month/year based on current date
   useEffect(() => {
@@ -107,12 +71,12 @@ const Index = () => {
       const currentActualYear = today.getFullYear();
       const currentActualMonth = String(today.getMonth() + 1).padStart(2, '0');
       const currentActualDay = today.getDate();
-
       let maxDayToShow = 0;
-
-      if (parseInt(selectedYear) < currentActualYear || (parseInt(selectedYear) === currentActualYear && selectedMonth < currentActualMonth)) {
+      
+      if (parseInt(selectedYear) < currentActualYear || 
+          (parseInt(selectedYear) === currentActualYear && selectedMonth < currentActualMonth)) {
         // Past month/year: all recurring expenses for this month are considered due
-        maxDayToShow = 31; 
+        maxDayToShow = 31;
       } else if (parseInt(selectedYear) === currentActualYear && selectedMonth === currentActualMonth) {
         // Current month/year: only recurring expenses up to today's date
         maxDayToShow = currentActualDay;
@@ -123,7 +87,7 @@ const Index = () => {
 
       const recurringExpensesForSelectedMonthYear: Expense[] = [];
       const currentMonthYearPrefix = `${selectedYear}-${selectedMonth}`;
-
+      
       recurringExpenses.forEach(recExpense => {
         if (recExpense.dayOfMonth <= maxDayToShow) {
           const tempDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, recExpense.dayOfMonth);
@@ -140,38 +104,30 @@ const Index = () => {
         }
       });
 
-      setExpenses(prevExpenses => {
-        // Filter out all recurring expenses for the *currently selected month/year*
-        // and keep all non-recurring expenses and recurring expenses from *other* months/years.
-        const baseExpenses = prevExpenses.filter(exp => 
-          !exp.id.startsWith("RECURRING-") || !exp.date.startsWith(currentMonthYearPrefix)
-        );
-        
-        // Merge with the newly generated recurring expenses for the selected month/year
-        // This ensures that only the currently due recurring expenses are present.
-        return [...baseExpenses, ...recurringExpensesForSelectedMonthYear];
-      });
+      // We'll handle recurring expenses display in the UI rather than merging with regular expenses
     };
 
     generateAndMergeExpenses();
   }, [selectedMonth, selectedYear, recurringExpenses]);
 
-  const handleAddExpense = (newExpense: Expense) => {
-    setExpenses((prevExpenses) => [...prevExpenses, newExpense]);
+  const handleAddExpense = async (newExpense: Omit<Expense, 'id'>) => {
+    await addExpense(newExpense);
   };
 
-  const handleDeleteExpense = (id: string) => {
-    setExpenses((prevExpenses) => prevExpenses.filter((expense) => expense.id !== id));
+  const handleDeleteExpense = async (id: string) => {
+    await deleteExpense(id);
   };
 
-  const handleAddCategory = (newCategory: string) => {
-    setCategories((prevCategories) => [...prevCategories, newCategory]);
+  const handleAddCategory = async (newCategory: string) => {
+    await addCategory(newCategory);
   };
 
-  const handleDeleteCategory = (categoryToDelete: string) => {
+  const handleDeleteCategory = async (categoryToDelete: string) => {
+    // Check if category is used in any expenses
     const expensesWithCategory = expenses.filter(
       (expense) => expense.category === categoryToDelete
     );
+    
     const recurringExpensesWithCategory = recurringExpenses.filter(
       (recExpense) => recExpense.category === categoryToDelete
     );
@@ -183,32 +139,19 @@ const Index = () => {
       return;
     }
 
-    setCategories((prevCategories) =>
-      prevCategories.filter((cat) => cat !== categoryToDelete)
-    );
-    toast.success(`Kategorija "${categoryToDelete}" ištrinta.`);
+    await deleteCategory(categoryToDelete);
   };
 
-  const handleSaveIncome = (income: number, type: 'default' | 'month', monthYear?: string) => {
-    if (type === 'default') {
-      setDefaultMonthlyIncome(income);
-      toast.success("Numatytosios mėnesio pajamos atnaujintos!");
-    } else if (type === 'month' && monthYear) {
-      setMonthlyIncomes((prev) => ({
-        ...prev,
-        [monthYear]: income,
-      }));
-      toast.success(`Mėnesio ${monthYear} pajamos atnaujintos!`);
-    }
+  const handleSaveIncome = async (income: number, type: 'default' | 'month', monthYear?: string) => {
+    await saveIncome(income, type, monthYear);
   };
 
-  const handleAddRecurringExpense = (newRecExpense: Omit<RecurringExpense, "id">) => {
-    setRecurringExpenses((prev) => [...prev, { ...newRecExpense, id: Date.now().toString() }]);
+  const handleAddRecurringExpense = async (newRecExpense: Omit<RecurringExpense, "id">) => {
+    await addRecurringExpense(newRecExpense);
   };
 
-  const handleDeleteRecurringExpense = (id: string) => {
-    setRecurringExpenses((prev) => prev.filter((rec) => rec.id !== id));
-    toast.success("Pasikartojanti išlaida sėkmingai ištrinta.");
+  const handleDeleteRecurringExpense = async (id: string) => {
+    await deleteRecurringExpense(id);
   };
 
   const availableYears = useMemo(() => {
@@ -232,34 +175,32 @@ const Index = () => {
   }, [filteredExpenses]);
 
   const selectedMonthYear = `${selectedYear}-${selectedMonth}`;
-  const currentMonthIncome = monthlyIncomes[selectedMonthYear] !== undefined
-    ? monthlyIncomes[selectedMonthYear]
+  const currentMonthIncome = monthlyIncomes[selectedMonthYear] !== undefined 
+    ? monthlyIncomes[selectedMonthYear] 
     : defaultMonthlyIncome;
 
   const previousMonthCarryOver = useMemo(() => {
     let prevMonth = parseInt(selectedMonth) - 1;
     let prevYear = parseInt(selectedYear);
-
     if (prevMonth === 0) {
       prevMonth = 12;
       prevYear -= 1;
     }
-
     const prevMonthPadded = String(prevMonth).padStart(2, '0');
     const prevMonthYear = `${prevYear}-${prevMonthPadded}`;
-
+    
     const expensesForPreviousMonth = expenses.filter(expense => {
       const expenseDate = new Date(expense.date);
       const expenseMonth = String(expenseDate.getMonth() + 1).padStart(2, '0');
       const expenseYear = String(expenseDate.getFullYear());
       return expenseMonth === prevMonthPadded && expenseYear === String(prevYear);
     });
-
+    
     const totalExpensesForPreviousMonth = expensesForPreviousMonth.reduce((sum, expense) => sum + expense.amount, 0);
-    const previousMonthIncome = monthlyIncomes[prevMonthYear] !== undefined
-      ? monthlyIncomes[prevMonthYear]
+    const previousMonthIncome = monthlyIncomes[prevMonthYear] !== undefined 
+      ? monthlyIncomes[prevMonthYear] 
       : defaultMonthlyIncome;
-
+    
     return previousMonthIncome - totalExpensesForPreviousMonth;
   }, [expenses, monthlyIncomes, defaultMonthlyIncome, selectedMonth, selectedYear]);
 
@@ -273,13 +214,20 @@ const Index = () => {
         monthlyTotals[month] = (monthlyTotals[month] || 0) + expense.amount;
       }
     });
-
+    
     return months.map(m => ({
       name: m.label,
       total: parseFloat((monthlyTotals[m.value] || 0).toFixed(2)),
     }));
   }, [expenses, selectedYear]);
 
+  if (expensesLoading || categoriesLoading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8 flex items-center justify-center">
+        <p>Įkeliama...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8">
@@ -294,11 +242,12 @@ const Index = () => {
         onAddRecurringExpense={handleAddRecurringExpense}
         onDeleteRecurringExpense={handleDeleteRecurringExpense}
       />
+      
       <div className="max-w-6xl mx-auto space-y-8">
         <h1 className="text-6xl font-extrabold text-center mb-10 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500 drop-shadow-lg">
           Išlaidų Sekiklis
         </h1>
-
+        
         <div className="mb-6 flex justify-center">
           <MonthYearNavigator
             selectedMonth={selectedMonth}
@@ -307,19 +256,34 @@ const Index = () => {
             setSelectedYear={setSelectedYear}
           />
         </div>
-
+        
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <ExpenseForm onAddExpense={handleAddExpense} categories={categories} />
+          <ExpenseForm
+            onAddExpense={handleAddExpense}
+            categories={categories}
+          />
           <IncomeTracker
             monthlyIncome={currentMonthIncome}
             totalExpenses={totalExpensesForSelectedMonth}
             previousMonthCarryOver={previousMonthCarryOver}
           />
         </div>
-
-        <ExpenseChart expenses={filteredExpenses} selectedMonth={selectedMonth} selectedYear={selectedYear} />
-        <MonthlyLineChart monthlyData={monthlyExpenseTotals} selectedYear={selectedYear} />
-        <ExpenseList expenses={filteredExpenses} onDeleteExpense={handleDeleteExpense} />
+        
+        <ExpenseChart
+          expenses={filteredExpenses}
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
+        />
+        
+        <MonthlyLineChart
+          monthlyData={monthlyExpenseTotals}
+          selectedYear={selectedYear}
+        />
+        
+        <ExpenseList
+          expenses={filteredExpenses}
+          onDeleteExpense={handleDeleteExpense}
+        />
       </div>
     </div>
   );
