@@ -9,27 +9,18 @@ export const useRecurringExpenses = () => {
 
   useEffect(() => {
     fetchRecurringExpenses();
-    
     const channel = supabase
       .channel('recurring-expenses-changes')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'recurring_expenses',
-        },
+        { event: 'INSERT', schema: 'public', table: 'recurring_expenses' },
         (payload) => {
           setRecurringExpenses((prev) => [...prev, payload.new as RecurringExpense]);
         }
       )
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'recurring_expenses',
-        },
+        { event: 'UPDATE', schema: 'public', table: 'recurring_expenses' },
         (payload) => {
           setRecurringExpenses((prev) =>
             prev.map((expense) =>
@@ -40,11 +31,7 @@ export const useRecurringExpenses = () => {
       )
       .on(
         'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'recurring_expenses',
-        },
+        { event: 'DELETE', schema: 'public', table: 'recurring_expenses' },
         (payload) => {
           setRecurringExpenses((prev) => prev.filter((expense) => expense.id !== payload.old.id));
         }
@@ -73,6 +60,7 @@ export const useRecurringExpenses = () => {
   };
 
   const addRecurringExpense = async (expense: Omit<RecurringExpense, 'id'>) => {
+    // Remove manual ID generation
     const { data, error } = await supabase
       .from('recurring_expenses')
       .insert([{ ...expense }])
@@ -105,11 +93,5 @@ export const useRecurringExpenses = () => {
     return true;
   };
 
-  return {
-    recurringExpenses,
-    loading,
-    addRecurringExpense,
-    deleteRecurringExpense,
-    fetchRecurringExpenses
-  };
+  return { recurringExpenses, loading, addRecurringExpense, deleteRecurringExpense, fetchRecurringExpenses };
 };

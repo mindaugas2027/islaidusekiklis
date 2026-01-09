@@ -9,30 +9,21 @@ export const useExpenses = () => {
 
   useEffect(() => {
     fetchExpenses();
-    
     const channel = supabase
       .channel('expenses-changes')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'expenses',
-        },
+        { event: 'INSERT', schema: 'public', table: 'expenses' },
         (payload) => {
           setExpenses((prev) => [...prev, payload.new as Expense]);
         }
       )
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'expenses',
-        },
+        { event: 'UPDATE', schema: 'public', table: 'expenses' },
         (payload) => {
-          setExpenses((prev) =>
-            prev.map((expense) =>
+          setExpenses((prev) => 
+            prev.map((expense) => 
               expense.id === payload.new.id ? (payload.new as Expense) : expense
             )
           );
@@ -40,11 +31,7 @@ export const useExpenses = () => {
       )
       .on(
         'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'expenses',
-        },
+        { event: 'DELETE', schema: 'public', table: 'expenses' },
         (payload) => {
           setExpenses((prev) => prev.filter((expense) => expense.id !== payload.old.id));
         }
@@ -73,6 +60,7 @@ export const useExpenses = () => {
   };
 
   const addExpense = async (expense: Omit<Expense, 'id'>) => {
+    // Remove the manual ID generation since Supabase will handle it automatically
     const { data, error } = await supabase
       .from('expenses')
       .insert([{ ...expense }])
@@ -105,11 +93,5 @@ export const useExpenses = () => {
     return true;
   };
 
-  return {
-    expenses,
-    loading,
-    addExpense,
-    deleteExpense,
-    fetchExpenses
-  };
+  return { expenses, loading, addExpense, deleteExpense, fetchExpenses };
 };

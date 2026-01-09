@@ -8,27 +8,18 @@ export const useCategories = () => {
 
   useEffect(() => {
     fetchCategories();
-    
     const channel = supabase
       .channel('categories-changes')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'categories',
-        },
+        { event: 'INSERT', schema: 'public', table: 'categories' },
         (payload) => {
           setCategories((prev) => [...prev, payload.new.name]);
         }
       )
       .on(
         'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'categories',
-        },
+        { event: 'DELETE', schema: 'public', table: 'categories' },
         (payload) => {
           setCategories((prev) => prev.filter((cat) => cat !== payload.old.name));
         }
@@ -57,6 +48,7 @@ export const useCategories = () => {
   };
 
   const addCategory = async (name: string) => {
+    // Remove manual ID generation
     const { error } = await supabase
       .from('categories')
       .insert([{ name }]);
@@ -91,11 +83,5 @@ export const useCategories = () => {
     return true;
   };
 
-  return {
-    categories,
-    loading,
-    addCategory,
-    deleteCategory,
-    fetchCategories
-  };
+  return { categories, loading, addCategory, deleteCategory, fetchCategories };
 };
