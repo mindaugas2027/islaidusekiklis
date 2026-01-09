@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { RecurringExpense } from "@/types/recurringExpense";
 import { toast } from "sonner";
@@ -7,46 +7,7 @@ export const useRecurringExpenses = () => {
   const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchRecurringExpenses();
-    
-    const channel = supabase
-      .channel('recurring-expenses-changes')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'recurring_expenses' },
-        (payload) => {
-          setRecurringExpenses((prev) => [...prev, payload.new as RecurringExpense]);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'recurring_expenses' },
-        (payload) => {
-          setRecurringExpenses((prev) => 
-            prev.map((expense) => 
-              expense.id === payload.new.id ? (payload.new as RecurringExpense) : expense
-            )
-          );
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'recurring_expenses' },
-        (payload) => {
-          setRecurringExpenses((prev) => 
-            prev.filter((expense) => expense.id !== payload.old.id)
-          );
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const fetchRecurringExpenses = async () => {
+  const refreshRecurringExpenses = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('recurring_expenses')
@@ -60,7 +21,40 @@ export const useRecurringExpenses = () => {
       setRecurringExpenses(data as RecurringExpense[]);
     }
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    refreshRecurringExpenses();
+    
+    const channel = supabase
+      .channel('recurring-expenses-changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'recurring_expenses' },
+        (payload) => {
+          refreshRecurringExpenses();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'recurring_expenses' },
+        (payload) => {
+          refreshRecurringExpenses();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'recurring_expenses' },
+        (payload) => {
+          refreshRecurringExpenses();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refreshRecurringExpenses]);
 
   const addRecurringExpense = async (expense: Omit<RecurringExpense, 'id'>) => {
     const { data, error } = await supabase
@@ -69,7 +63,7 @@ export const useRecurringExpenses = () => {
         name: expense.name,
         amount: expense.amount,
         category: expense.category,
-        day_of_month: expense.day_of_month // Use correct column name
+        day_of_month: expense.day_of_month
       }])
       .select()
       .single();
@@ -105,6 +99,6 @@ export const useRecurringExpenses = () => {
     loading,
     addRecurringExpense,
     deleteRecurringExpense,
-    fetchRecurringExpenses
+    refreshRecurringExpenses
   };
 };

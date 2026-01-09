@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Expense } from "@/types/expense";
 import { toast } from "sonner";
@@ -7,46 +7,7 @@ export const useExpenses = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchExpenses();
-    
-    const channel = supabase
-      .channel('expenses-changes')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'expenses' },
-        (payload) => {
-          setExpenses((prev) => [...prev, payload.new as Expense]);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'expenses' },
-        (payload) => {
-          setExpenses((prev) => 
-            prev.map((expense) => 
-              expense.id === payload.new.id ? (payload.new as Expense) : expense
-            )
-          );
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'expenses' },
-        (payload) => {
-          setExpenses((prev) => 
-            prev.filter((expense) => expense.id !== payload.old.id)
-          );
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const fetchExpenses = async () => {
+  const refreshExpenses = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('expenses')
@@ -60,7 +21,40 @@ export const useExpenses = () => {
       setExpenses(data as Expense[]);
     }
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    refreshExpenses();
+    
+    const channel = supabase
+      .channel('expenses-changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'expenses' },
+        (payload) => {
+          refreshExpenses();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'expenses' },
+        (payload) => {
+          refreshExpenses();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'expenses' },
+        (payload) => {
+          refreshExpenses();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refreshExpenses]);
 
   const addExpense = async (expense: Omit<Expense, 'id'>) => {
     const { data, error } = await supabase
@@ -75,8 +69,6 @@ export const useExpenses = () => {
       return null;
     }
     
-    // The real-time subscription will automatically update the state
-    // We don't need to manually add it to the state
     toast.success("Išlaida sėkmingai pridėta!");
     return data as Expense;
   };
@@ -93,8 +85,6 @@ export const useExpenses = () => {
       return false;
     }
     
-    // The real-time subscription will automatically update the state
-    // We don't need to manually remove it from the state
     toast.success("Išlaida sėkmingai ištrinta.");
     return true;
   };
@@ -137,7 +127,7 @@ export const useExpenses = () => {
     loading,
     addExpense,
     deleteExpense,
-    fetchExpenses,
+    refreshExpenses,
     getMonthlyTotal,
     getCategoryTotal
   };
