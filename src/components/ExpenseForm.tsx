@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,15 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
   const [category, setCategory] = useState<string>(categories.length > 0 ? categories[0] : ""); // Default to first category or empty
   const [description, setDescription] = useState<string>("");
   const [date, setDate] = useState<string>(new Date().toISOString().split("T")[0]);
+
+  // Update category state if categories change and current category is no longer valid
+  useEffect(() => {
+    if (categories.length > 0 && !categories.includes(category)) {
+      setCategory(categories[0]);
+    } else if (categories.length === 0) {
+      setCategory(""); // Clear category if no categories exist
+    }
+  }, [categories, category]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,20 +80,20 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
           </div>
           <div>
             <Label htmlFor="category">Kategorija</Label>
-            <Select value={category} onValueChange={(value: string) => setCategory(value)}>
+            <Select
+              value={category}
+              onValueChange={(value: string) => setCategory(value)}
+              disabled={categories.length === 0} // Disable select if no categories
+            >
               <SelectTrigger id="category">
-                <SelectValue placeholder="Pasirinkite kategoriją" />
+                <SelectValue placeholder={categories.length === 0 ? "Nėra kategorijų" : "Pasirinkite kategoriją"} />
               </SelectTrigger>
               <SelectContent>
-                {categories.length === 0 ? (
-                  <SelectItem value="" disabled>Nėra kategorijų</SelectItem>
-                ) : (
-                  categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))
-                )}
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
