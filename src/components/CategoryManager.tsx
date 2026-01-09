@@ -15,7 +15,7 @@ interface CategoryManagerProps {
 const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCategory, onDeleteCategory }) => {
   const [newCategoryName, setNewCategoryName] = useState<string>("");
   const [isAdding, setIsAdding] = useState(false);
-  const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
+  const [deletingCategories, setDeletingCategories] = useState<Set<string>>(new Set());
 
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,14 +44,20 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
   };
 
   const handleDeleteCategory = async (category: string) => {
-    setDeletingCategory(category);
+    // Immediately add to deleting set for UI feedback
+    setDeletingCategories(prev => new Set(prev).add(category));
+    
     try {
       await onDeleteCategory(category);
       toast.success(`Kategorija "${category}" ištrinta.`);
     } catch (error) {
       toast.error("Nepavyko ištrinti kategorijos");
-    } finally {
-      setDeletingCategory(null);
+      // Remove from deleting set if failed
+      setDeletingCategories(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(category);
+        return newSet;
+      });
     }
   };
 
@@ -62,13 +68,13 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
       </CardHeader>
       <CardContent className="space-y-4">
         <form onSubmit={handleAddCategory} className="flex gap-2">
-          <Input
-            type="text"
-            placeholder="Naujos kategorijos pavadinimas"
-            value={newCategoryName}
-            onChange={(e) => setNewCategoryName(e.target.value)}
-            className="flex-grow"
-            disabled={isAdding}
+          <Input 
+            type="text" 
+            placeholder="Naujos kategorijos pavadinimas" 
+            value={newCategoryName} 
+            onChange={(e) => setNewCategoryName(e.target.value)} 
+            className="flex-grow" 
+            disabled={isAdding} 
           />
           <Button type="submit" disabled={isAdding}>
             {isAdding ? "Pridedama..." : "Pridėti"}
@@ -82,19 +88,21 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
             <Label className="text-lg font-semibold">Esamos kategorijos:</Label>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {categories.map((category) => (
-                <li
-                  key={category}
-                  className="flex items-center justify-between p-2 border rounded-md bg-secondary text-secondary-foreground"
+                <li 
+                  key={category} 
+                  className={`flex items-center justify-between p-2 border rounded-md bg-secondary text-secondary-foreground transition-opacity ${
+                    deletingCategories.has(category) ? "opacity-50" : ""
+                  }`}
                 >
                   <span>{category}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteCategory(category)}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleDeleteCategory(category)} 
                     className="h-auto p-1"
-                    disabled={deletingCategory === category}
+                    disabled={deletingCategories.has(category)}
                   >
-                    {deletingCategory === category ? (
+                    {deletingCategories.has(category) ? (
                       "Trinama..."
                     ) : (
                       <X className="h-4 w-4 text-destructive" />
