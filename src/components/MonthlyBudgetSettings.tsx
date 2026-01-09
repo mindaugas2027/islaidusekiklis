@@ -3,50 +3,108 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface MonthlyBudgetSettingsProps {
-  monthlyIncome: number;
-  onSaveMonthlyIncome: (income: number) => void;
+  monthlyIncomes: { [key: string]: number };
+  defaultMonthlyIncome: number;
+  onSaveIncome: (income: number, type: 'default' | 'month', monthYear?: string) => void;
+  selectedMonth: string;
+  selectedYear: string;
 }
 
 const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
-  monthlyIncome,
-  onSaveMonthlyIncome,
+  monthlyIncomes,
+  defaultMonthlyIncome,
+  onSaveIncome,
+  selectedMonth,
+  selectedYear,
 }) => {
-  const [inputIncome, setInputIncome] = useState<string>(monthlyIncome.toFixed(2));
+  const selectedMonthYear = `${selectedYear}-${selectedMonth}`;
+  const currentMonthSpecificIncome = monthlyIncomes[selectedMonthYear];
+
+  const [inputMonthIncome, setInputMonthIncome] = useState<string>(
+    currentMonthSpecificIncome !== undefined ? currentMonthSpecificIncome.toFixed(2) : ""
+  );
+  const [inputDefaultIncome, setInputDefaultIncome] = useState<string>(defaultMonthlyIncome.toFixed(2));
 
   useEffect(() => {
-    setInputIncome(monthlyIncome.toFixed(2));
-  }, [monthlyIncome]);
+    setInputMonthIncome(
+      currentMonthSpecificIncome !== undefined ? currentMonthSpecificIncome.toFixed(2) : ""
+    );
+  }, [currentMonthSpecificIncome]);
 
-  const handleSaveIncome = () => {
-    const parsedIncome = parseFloat(inputIncome);
+  useEffect(() => {
+    setInputDefaultIncome(defaultMonthlyIncome.toFixed(2));
+  }, [defaultMonthlyIncome]);
+
+  const handleSaveMonthIncome = () => {
+    const parsedIncome = parseFloat(inputMonthIncome);
     if (isNaN(parsedIncome) || parsedIncome < 0) {
-      toast.error("Prašome įvesti teigiamą pajamų sumą.");
+      toast.error("Prašome įvesti teigiamą pajamų sumą pasirinktam mėnesiui.");
       return;
     }
-    onSaveMonthlyIncome(parsedIncome);
-    toast.success("Mėnesio pajamos atnaujintos!");
+    onSaveIncome(parsedIncome, 'month', selectedMonthYear);
+  };
+
+  const handleSaveDefaultIncome = () => {
+    const parsedIncome = parseFloat(inputDefaultIncome);
+    if (isNaN(parsedIncome) || parsedIncome < 0) {
+      toast.error("Prašome įvesti teigiamą numatytąją pajamų sumą.");
+      return;
+    }
+    onSaveIncome(parsedIncome, 'default');
   };
 
   return (
-    <div className="space-y-4 p-4 border-t pt-4">
-      <h3 className="text-xl font-semibold text-center">Mėnesio pajamų nustatymai</h3>
-      <div>
-        <Label htmlFor="monthly-income-input">Mėnesio pajamos (€)</Label>
-        <div className="flex gap-2 mt-1">
-          <Input
-            id="monthly-income-input"
-            type="number"
-            value={inputIncome}
-            onChange={(e) => setInputIncome(e.target.value)}
-            placeholder="0.00"
-            step="0.01"
-          />
-          <Button onClick={handleSaveIncome}>Išsaugoti</Button>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle className="text-2xl font-bold text-center">Mėnesio pajamų nustatymai</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div>
+          <Label htmlFor="month-income-input" className="text-lg font-semibold">
+            Pajamos pasirinktam mėnesiui ({selectedMonthYear})
+          </Label>
+          <div className="flex gap-2 mt-1">
+            <Input
+              id="month-income-input"
+              type="number"
+              value={inputMonthIncome}
+              onChange={(e) => setInputMonthIncome(e.target.value)}
+              placeholder="0.00"
+              step="0.01"
+            />
+            <Button onClick={handleSaveMonthIncome}>Išsaugoti</Button>
+          </div>
+          {currentMonthSpecificIncome === undefined && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Šiam mėnesiui nustatytos numatytosios pajamos: {defaultMonthlyIncome.toFixed(2)} €
+            </p>
+          )}
         </div>
-      </div>
-    </div>
+
+        <div className="border-t pt-4">
+          <Label htmlFor="default-income-input" className="text-lg font-semibold">
+            Numatytosios mėnesio pajamos (visada)
+          </Label>
+          <div className="flex gap-2 mt-1">
+            <Input
+              id="default-income-input"
+              type="number"
+              value={inputDefaultIncome}
+              onChange={(e) => setInputDefaultIncome(e.target.value)}
+              placeholder="0.00"
+              step="0.01"
+            />
+            <Button onClick={handleSaveDefaultIncome}>Išsaugoti</Button>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Ši suma bus naudojama mėnesiams, kuriems nenustatytos individualios pajamos.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

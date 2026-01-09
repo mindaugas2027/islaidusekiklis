@@ -32,7 +32,8 @@ const months = [
 const Index = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [monthlyIncome, setMonthlyIncome] = useState<number>(0);
+  const [monthlyIncomes, setMonthlyIncomes] = useState<{ [key: string]: number }>({}); // Pajamos pagal mėnesius (YYYY-MM)
+  const [defaultMonthlyIncome, setDefaultMonthlyIncome] = useState<number>(0); // Numatytosios pajamos
 
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
   const currentYear = String(new Date().getFullYear());
@@ -40,7 +41,7 @@ const Index = () => {
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
   const [selectedYear, setSelectedYear] = useState<string>(currentYear);
 
-  // Load expenses, categories, and monthly income from localStorage on initial render
+  // Load data from localStorage on initial render
   useEffect(() => {
     const storedExpenses = localStorage.getItem("expenses");
     if (storedExpenses) {
@@ -51,32 +52,39 @@ const Index = () => {
     if (storedCategories) {
       setCategories(JSON.parse(storedCategories));
     } else {
-      setCategories(DEFAULT_CATEGORIES); // Set default categories if none are stored
+      setCategories(DEFAULT_CATEGORIES);
     }
 
-    const storedIncome = localStorage.getItem("monthlyIncome");
-    if (storedIncome) {
-      const parsedIncome = parseFloat(storedIncome);
+    const storedMonthlyIncomes = localStorage.getItem("monthlyIncomes");
+    if (storedMonthlyIncomes) {
+      setMonthlyIncomes(JSON.parse(storedMonthlyIncomes));
+    }
+
+    const storedDefaultIncome = localStorage.getItem("defaultMonthlyIncome");
+    if (storedDefaultIncome) {
+      const parsedIncome = parseFloat(storedDefaultIncome);
       if (!isNaN(parsedIncome)) {
-        setMonthlyIncome(parsedIncome);
+        setDefaultMonthlyIncome(parsedIncome);
       }
     }
   }, []);
 
-  // Save expenses to localStorage whenever they change
+  // Save data to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("expenses", JSON.stringify(expenses));
   }, [expenses]);
 
-  // Save categories to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem("categories", JSON.stringify(categories));
   }, [categories]);
 
-  // Save monthly income to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem("monthlyIncome", monthlyIncome.toString());
-  }, [monthlyIncome]);
+    localStorage.setItem("monthlyIncomes", JSON.stringify(monthlyIncomes));
+  }, [monthlyIncomes]);
+
+  useEffect(() => {
+    localStorage.setItem("defaultMonthlyIncome", defaultMonthlyIncome.toString());
+  }, [defaultMonthlyIncome]);
 
   const handleAddExpense = (newExpense: Expense) => {
     setExpenses((prevExpenses) => [...prevExpenses, newExpense]);
@@ -91,7 +99,6 @@ const Index = () => {
   };
 
   const handleDeleteCategory = (categoryToDelete: string) => {
-    // Check if any expenses are using this category
     const expensesWithCategory = expenses.filter(
       (expense) => expense.category === categoryToDelete
     );
@@ -109,14 +116,23 @@ const Index = () => {
     toast.success(`Kategorija "${categoryToDelete}" ištrinta.`);
   };
 
-  const handleSaveMonthlyIncome = (income: number) => {
-    setMonthlyIncome(income);
+  const handleSaveIncome = (income: number, type: 'default' | 'month', monthYear?: string) => {
+    if (type === 'default') {
+      setDefaultMonthlyIncome(income);
+      toast.success("Numatytosios mėnesio pajamos atnaujintos!");
+    } else if (type === 'month' && monthYear) {
+      setMonthlyIncomes((prev) => ({
+        ...prev,
+        [monthYear]: income,
+      }));
+      toast.success(`Mėnesio ${monthYear} pajamos atnaujintos!`);
+    }
   };
 
   const availableYears = useMemo(() => {
     const years = new Set<string>();
     expenses.forEach(expense => years.add(new Date(expense.date).getFullYear().toString()));
-    years.add(String(new Date().getFullYear())); // Always include current year
+    years.add(String(new Date().getFullYear()));
     return Array.from(years).sort((a, b) => parseInt(b) - parseInt(a));
   }, [expenses]);
 
@@ -133,14 +149,22 @@ const Index = () => {
     return filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   }, [filteredExpenses]);
 
+  const selectedMonthYear = `${selectedYear}-${selectedMonth}`;
+  const currentMonthIncome = monthlyIncomes[selectedMonthYear] !== undefined
+    ? monthlyIncomes[selectedMonthYear]
+    : defaultMonthlyIncome;
+
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8">
       <Sidebar
         categories={categories}
         onAddCategory={handleAddCategory}
         onDeleteCategory={handleDeleteCategory}
-        monthlyIncome={monthlyIncome}
-        onSaveMonthlyIncome={handleSaveMonthlyIncome}
+        monthlyIncomes={monthlyIncomes}
+        defaultMonthlyIncome={defaultMonthlyIncome}
+        onSaveIncome={handleSaveIncome}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
       />
       <div className="max-w-6xl mx-auto space-y-8">
         <h1 className="text-5xl font-extrabold text-center mb-10">
@@ -182,7 +206,7 @@ const Index = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <ExpenseForm onAddExpense={handleAddExpense} categories={categories} />
-          <IncomeTracker monthlyIncome={monthlyIncome} totalExpenses={totalExpensesForSelectedMonth} />
+          <IncomeTracker monthlyIncome={currentMonthIncome} totalExpenses={totalExpensesForSelectedMonth} />
         </div>
 
         <ExpenseChart expenses={filteredExpenses} selectedMonth={selectedMonth} selectedYear={selectedYear} />
