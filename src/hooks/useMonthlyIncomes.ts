@@ -61,7 +61,7 @@ export const useMonthlyIncomes = () => {
         }
       )
       .subscribe();
-    
+
     return () => {
       supabase.removeChannel(channel);
     };
@@ -69,12 +69,12 @@ export const useMonthlyIncomes = () => {
 
   const saveIncome = async (income: number, type: 'default' | 'month', monthYear?: string) => {
     const month_year = type === 'default' ? 'default' : monthYear;
-    
+
     if (!month_year) {
       toast.error("Nepavyko išsaugoti pajamų - nenurodytas mėnuo");
       return false;
     }
-    
+
     // Handle removal of specific month income (when income is 0 and it's a month type)
     if (type === 'month' && income === 0) {
       // First try to delete existing record
@@ -82,18 +82,24 @@ export const useMonthlyIncomes = () => {
         .from('monthly_incomes')
         .delete()
         .eq('month_year', month_year);
-      
+
       if (deleteError) {
         toast.error("Nepavyko pašalinti mėnesio pajamų");
         console.error(deleteError);
         return false;
       }
-      
-      refreshMonthlyIncomes();
+
+      // Optimistically update UI
+      setMonthlyIncomes(prev => {
+        const newIncomes = {...prev};
+        delete newIncomes[month_year];
+        return newIncomes;
+      });
+
       toast.success(`Mėnesio ${monthYear} pajamos pašalintos. Bus naudojamos numatytosios pajamos.`);
       return true;
     }
-    
+
     // First try to update existing record
     const { data: updateData, error: updateError } = await supabase
       .from('monthly_incomes')
@@ -101,10 +107,19 @@ export const useMonthlyIncomes = () => {
       .eq('month_year', month_year)
       .select()
       .single();
-    
+
     if (updateData) {
       // Successfully updated
-      refreshMonthlyIncomes();
+      // Optimistically update UI
+      if (type === 'default') {
+        setDefaultMonthlyIncome(income);
+      } else if (monthYear) {
+        setMonthlyIncomes(prev => ({
+          ...prev,
+          [monthYear]: income
+        }));
+      }
+
       if (type === 'default') {
         toast.success("Numatytosios mėnesio pajamos atnaujintos!");
       } else if (monthYear) {
@@ -112,21 +127,30 @@ export const useMonthlyIncomes = () => {
       }
       return true;
     }
-    
+
     // If update failed because record doesn't exist, insert new record
     const { data: insertData, error: insertError } = await supabase
       .from('monthly_incomes')
       .insert([{ month_year, income }])
       .select()
       .single();
-    
+
     if (insertError) {
       toast.error("Nepavyko išsaugoti pajamų");
       console.error(insertError);
       return false;
     }
-    
-    refreshMonthlyIncomes();
+
+    // Optimistically update UI
+    if (type === 'default') {
+      setDefaultMonthlyIncome(income);
+    } else if (monthYear) {
+      setMonthlyIncomes(prev => ({
+        ...prev,
+        [monthYear]: income
+      }));
+    }
+
     if (type === 'default') {
       toast.success("Numatytosios mėnesio pajamos atnaujintos!");
     } else if (monthYear) {
