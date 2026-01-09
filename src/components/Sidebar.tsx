@@ -45,12 +45,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" size="icon" className="fixed top-4 right-4 z-50">
+        <Button variant="outline" size="icon" className="fixed top-4 left-4 z-50">
           <Settings className="h-5 w-5" />
           <span className="sr-only">Atidaryti nustatymus</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col">
+      <SheetContent side="left" className="w-full sm:max-w-md flex flex-col">
         <SheetHeader>
           <SheetTitle className="text-3xl font-bold text-center">Nustatymai</SheetTitle>
         </SheetHeader>
