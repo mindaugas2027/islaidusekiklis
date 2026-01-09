@@ -22,14 +22,17 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedName = newCategoryName.trim();
+    
     if (!trimmedName) {
       toast.error("Kategorijos pavadinimas negali būti tuščias.");
       return;
     }
+    
     if (categories.includes(trimmedName)) {
       toast.error("Tokia kategorija jau egzistuoja.");
       return;
     }
+
     onAddCategory(trimmedName);
     setNewCategoryName("");
     toast.success(`Kategorija "${trimmedName}" pridėta.`);
@@ -42,16 +45,16 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         <form onSubmit={handleAddCategory} className="flex gap-2">
-          <Input
-            type="text"
+          <Input 
+            type="text" 
             placeholder="Naujos kategorijos pavadinimas"
-            value={newCategoryName}
-            onChange={(e) => setNewCategoryName(e.target.value)}
+            value={newCategoryName} 
+            onChange={(e) => setNewCategoryName(e.target.value)} 
             className="flex-grow"
           />
           <Button type="submit">Pridėti</Button>
         </form>
-
+        
         {categories.length === 0 ? (
           <p className="text-center text-gray-500">Kol kas nėra kategorijų. Pridėkite naują!</p>
         ) : (
@@ -59,14 +62,14 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
             <Label className="text-lg font-semibold">Esamos kategorijos:</Label>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {categories.map((category) => (
-                <li
-                  key={category}
+                <li 
+                  key={category} 
                   className="flex items-center justify-between p-2 border rounded-md bg-secondary text-secondary-foreground"
                 >
                   <span>{category}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
                     onClick={() => onDeleteCategory(category)}
                     className="h-auto p-1"
                   >

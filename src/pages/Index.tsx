@@ -48,7 +48,7 @@ const Index = () => {
   const { categories, loading: categoriesLoading, addCategory, deleteCategory } = useCategories();
   const { monthlyIncomes, defaultMonthlyIncome, saveIncome } = useMonthlyIncomes();
   const { recurringExpenses, addRecurringExpense, deleteRecurringExpense } = useRecurringExpenses();
-  
+
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
   const currentYear = String(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
@@ -71,6 +71,7 @@ const Index = () => {
       const currentActualYear = today.getFullYear();
       const currentActualMonth = String(today.getMonth() + 1).padStart(2, '0');
       const currentActualDay = today.getDate();
+      
       let maxDayToShow = 0;
       
       if (parseInt(selectedYear) < currentActualYear || 
@@ -84,7 +85,7 @@ const Index = () => {
         // Future month/year: no recurring expenses are due yet
         maxDayToShow = 0;
       }
-
+      
       const recurringExpensesForSelectedMonthYear: Expense[] = [];
       const currentMonthYearPrefix = `${selectedYear}-${selectedMonth}`;
       
@@ -103,10 +104,10 @@ const Index = () => {
           });
         }
       });
-
+      
       // We'll handle recurring expenses display in the UI rather than merging with regular expenses
     };
-
+    
     generateAndMergeExpenses();
   }, [selectedMonth, selectedYear, recurringExpenses]);
 
@@ -131,14 +132,14 @@ const Index = () => {
     const recurringExpensesWithCategory = recurringExpenses.filter(
       (recExpense) => recExpense.category === categoryToDelete
     );
-
+    
     if (expensesWithCategory.length > 0 || recurringExpensesWithCategory.length > 0) {
       toast.error(
         `Negalima ištrinti kategorijos "${categoryToDelete}", nes ji naudojama išlaidose arba pasikartojančiose išlaidose.`
       );
       return;
     }
-
+    
     await deleteCategory(categoryToDelete);
   };
 
@@ -182,10 +183,12 @@ const Index = () => {
   const previousMonthCarryOver = useMemo(() => {
     let prevMonth = parseInt(selectedMonth) - 1;
     let prevYear = parseInt(selectedYear);
+    
     if (prevMonth === 0) {
       prevMonth = 12;
       prevYear -= 1;
     }
+    
     const prevMonthPadded = String(prevMonth).padStart(2, '0');
     const prevMonthYear = `${prevYear}-${prevMonthPadded}`;
     
@@ -200,16 +203,18 @@ const Index = () => {
     const previousMonthIncome = monthlyIncomes[prevMonthYear] !== undefined 
       ? monthlyIncomes[prevMonthYear] 
       : defaultMonthlyIncome;
-    
+      
     return previousMonthIncome - totalExpensesForPreviousMonth;
   }, [expenses, monthlyIncomes, defaultMonthlyIncome, selectedMonth, selectedYear]);
 
   const monthlyExpenseTotals = useMemo(() => {
     const monthlyTotals: { [key: string]: number } = {};
+    
     expenses.forEach(expense => {
       const expenseDate = new Date(expense.date);
       const year = String(expenseDate.getFullYear());
       const month = String(expenseDate.getMonth() + 1).padStart(2, '0');
+      
       if (year === selectedYear) {
         monthlyTotals[month] = (monthlyTotals[month] || 0) + expense.amount;
       }
@@ -231,7 +236,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8">
-      <Sidebar
+      <Sidebar 
         categories={categories}
         onAddCategory={handleAddCategory}
         onDeleteCategory={handleDeleteCategory}
@@ -249,7 +254,7 @@ const Index = () => {
         </h1>
         
         <div className="mb-6 flex justify-center">
-          <MonthYearNavigator
+          <MonthYearNavigator 
             selectedMonth={selectedMonth}
             setSelectedMonth={setSelectedMonth}
             selectedYear={selectedYear}
@@ -258,29 +263,29 @@ const Index = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <ExpenseForm
+          <ExpenseForm 
             onAddExpense={handleAddExpense}
             categories={categories}
           />
-          <IncomeTracker
+          <IncomeTracker 
             monthlyIncome={currentMonthIncome}
             totalExpenses={totalExpensesForSelectedMonth}
             previousMonthCarryOver={previousMonthCarryOver}
           />
         </div>
         
-        <ExpenseChart
+        <ExpenseChart 
           expenses={filteredExpenses}
           selectedMonth={selectedMonth}
           selectedYear={selectedYear}
         />
         
-        <MonthlyLineChart
+        <MonthlyLineChart 
           monthlyData={monthlyExpenseTotals}
           selectedYear={selectedYear}
         />
         
-        <ExpenseList
+        <ExpenseList 
           expenses={filteredExpenses}
           onDeleteExpense={handleDeleteExpense}
         />

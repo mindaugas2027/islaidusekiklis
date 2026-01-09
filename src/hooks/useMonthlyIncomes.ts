@@ -14,43 +14,37 @@ export const useMonthlyIncomes = () => {
       .channel('monthly-incomes-changes')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'monthly_incomes',
-        },
+        { event: 'INSERT', schema: 'public', table: 'monthly_incomes' },
         (payload) => {
           const { month_year, income } = payload.new;
           if (month_year === 'default') {
             setDefaultMonthlyIncome(income);
           } else {
-            setMonthlyIncomes((prev) => ({ ...prev, [month_year]: income }));
+            setMonthlyIncomes((prev) => ({
+              ...prev,
+              [month_year]: income
+            }));
           }
         }
       )
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'monthly_incomes',
-        },
+        { event: 'UPDATE', schema: 'public', table: 'monthly_incomes' },
         (payload) => {
           const { month_year, income } = payload.new;
           if (month_year === 'default') {
             setDefaultMonthlyIncome(income);
           } else {
-            setMonthlyIncomes((prev) => ({ ...prev, [month_year]: income }));
+            setMonthlyIncomes((prev) => ({
+              ...prev,
+              [month_year]: income
+            }));
           }
         }
       )
       .on(
         'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'monthly_incomes',
-        },
+        { event: 'DELETE', schema: 'public', table: 'monthly_incomes' },
         (payload) => {
           const { month_year } = payload.old;
           if (month_year === 'default') {
@@ -85,14 +79,14 @@ export const useMonthlyIncomes = () => {
       if (defaultIncome) {
         setDefaultMonthlyIncome(defaultIncome.income);
       }
-
+      
       const monthIncomes = data
         .filter(item => item.month_year !== 'default')
         .reduce((acc, item) => {
           acc[item.month_year] = item.income;
           return acc;
         }, {} as { [key: string]: number });
-
+        
       setMonthlyIncomes(monthIncomes);
     }
     setLoading(false);
@@ -122,18 +116,15 @@ export const useMonthlyIncomes = () => {
       setDefaultMonthlyIncome(income);
       toast.success("Numatytosios mėnesio pajamos atnaujintos!");
     } else if (monthYear) {
-      setMonthlyIncomes((prev) => ({ ...prev, [monthYear]: income }));
+      setMonthlyIncomes((prev) => ({
+        ...prev,
+        [monthYear]: income
+      }));
       toast.success(`Mėnesio ${monthYear} pajamos atnaujintos!`);
     }
-
+    
     return true;
   };
 
-  return {
-    monthlyIncomes,
-    defaultMonthlyIncome,
-    loading,
-    saveIncome,
-    fetchMonthlyIncomes
-  };
+  return { monthlyIncomes, defaultMonthlyIncome, loading, saveIncome, fetchMonthlyIncomes };
 };

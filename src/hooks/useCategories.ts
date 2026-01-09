@@ -8,6 +8,7 @@ export const useCategories = () => {
 
   useEffect(() => {
     fetchCategories();
+    
     const channel = supabase
       .channel('categories-changes')
       .on(

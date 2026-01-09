@@ -6,18 +6,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Expense } from "@/types/expense";
 import { toast } from "sonner";
-import { DatePicker } from "@/components/DatePicker"; // Importuojame naują DatePicker
+import { DatePicker } from "@/components/DatePicker";
 
 interface ExpenseFormProps {
-  onAddExpense: (expense: Expense) => void;
-  categories: string[]; // Added categories prop
+  onAddExpense: (expense: Omit<Expense, 'id'>) => void;
+  categories: string[];
 }
 
 const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) => {
   const [amount, setAmount] = useState<string>("");
-  const [category, setCategory] = useState<string>(categories.length > 0 ? categories[0] : ""); // Default to first category or empty
+  const [category, setCategory] = useState<string>(categories.length > 0 ? categories[0] : "");
   const [description, setDescription] = useState<string>("");
-  const [date, setDate] = useState<Date | undefined>(new Date()); // Pakeista į Date objektą
+  const [date, setDate] = useState<Date | undefined>(new Date());
 
   // Update category state if categories change and current category is no longer valid
   useEffect(() => {
@@ -31,30 +31,26 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const parsedAmount = parseFloat(amount);
-
+    
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       toast.error("Prašome įvesti teigiamą sumą.");
       return;
     }
-    // Aprašymo laukas nebėra privalomas, todėl pašaliname šį patikrinimą
-    // if (!description.trim()) {
-    //   toast.error("Prašome įvesti aprašymą.");
-    //   return;
-    // }
+
     if (!category) {
       toast.error("Prašome pasirinkti kategoriją.");
       return;
     }
+
     if (!date) {
       toast.error("Prašome pasirinkti datą.");
       return;
     }
 
-    const newExpense: Expense = {
-      id: Date.now().toString(),
+    const newExpense: Omit<Expense, 'id'> = {
       amount: parsedAmount,
       category,
-      description: description.trim(), // Vis tiek išvalome tarpus, jei aprašymas yra
+      description: description.trim(),
       date: date.toISOString().split("T")[0], // Konvertuojame Date į YYYY-MM-DD stringą
     };
 
@@ -74,20 +70,21 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="amount">Suma (€)</Label>
-            <Input
-              id="amount"
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              step="0.01"
-              required
+            <Input 
+              id="amount" 
+              type="number" 
+              value={amount} 
+              onChange={(e) => setAmount(e.target.value)} 
+              placeholder="0.00" 
+              step="0.01" 
+              required 
             />
           </div>
+          
           <div>
             <Label htmlFor="category">Kategorija</Label>
-            <Select
-              value={category}
+            <Select 
+              value={category} 
               onValueChange={(value: string) => setCategory(value)}
               disabled={categories.length === 0} // Disable select if no categories
             >
@@ -103,21 +100,23 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
               </SelectContent>
             </Select>
           </div>
+          
           <div>
             <Label htmlFor="description">Aprašymas (neprivaloma)</Label>
-            <Input
-              id="description"
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+            <Input 
+              id="description" 
+              type="text" 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)} 
               placeholder="Pvz., Pirkimas parduotuvėje"
-              // required atributas pašalintas
             />
           </div>
+          
           <div>
             <Label htmlFor="date">Data</Label>
-            <DatePicker date={date} setDate={setDate} /> {/* Naudojame naują DatePicker komponentą */}
+            <DatePicker date={date} setDate={setDate} />
           </div>
+          
           <Button type="submit" className="w-full" disabled={categories.length === 0}>
             Pridėti išlaidą
           </Button>

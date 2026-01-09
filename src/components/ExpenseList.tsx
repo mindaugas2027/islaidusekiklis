@@ -1,13 +1,6 @@
 import React from "react";
-import { Expense } from "@/types/expense"; // Using @ alias
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Expense } from "@/types/expense";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,9 +47,9 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDeleteExpense }) 
                       <TableCell>{expense.category}</TableCell>
                       <TableCell className="text-right">{expense.amount.toFixed(2)}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="destructive"
-                          size="sm"
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
                           onClick={() => handleDelete(expense.id)}
                         >
                           <Trash2 className="h-4 w-4" />

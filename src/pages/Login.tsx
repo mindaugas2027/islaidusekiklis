@@ -49,11 +49,7 @@ const Login = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <Button
-              variant="outline"
-              onClick={() => handleOAuthLogin("google")}
-              disabled={isLoading}
-            >
+            <Button variant="outline" onClick={() => handleOAuthLogin("google")} disabled={isLoading}>
               {isLoading ? (
                 <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -61,11 +57,7 @@ const Login = () => {
               )}
               Google
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleOAuthLogin("github")}
-              disabled={isLoading}
-            >
+            <Button variant="outline" onClick={() => handleOAuthLogin("github")} disabled={isLoading}>
               {isLoading ? (
                 <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -74,7 +66,6 @@ const Login = () => {
               GitHub
             </Button>
           </div>
-          
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
@@ -85,7 +76,6 @@ const Login = () => {
               </span>
             </div>
           </div>
-          
           <Auth
             supabaseClient={supabase}
             providers={[]}

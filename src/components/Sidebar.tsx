@@ -55,27 +55,26 @@ const Sidebar: React.FC<SidebarProps> = ({
           <SheetTitle className="text-3xl font-bold text-center">Nustatymai</SheetTitle>
         </SheetHeader>
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          <CategoryManager
+          <CategoryManager 
             categories={categories}
             onAddCategory={onAddCategory}
             onDeleteCategory={onDeleteCategory}
           />
-          <MonthlyBudgetSettings
+          
+          <MonthlyBudgetSettings 
             monthlyIncomes={monthlyIncomes}
             defaultMonthlyIncome={defaultMonthlyIncome}
             onSaveIncome={onSaveIncome}
           />
-          <RecurringExpenseManager
+          
+          <RecurringExpenseManager 
             recurringExpenses={recurringExpenses}
             categories={categories}
             onAddRecurringExpense={onAddRecurringExpense}
             onDeleteRecurringExpense={onDeleteRecurringExpense}
           />
-          <Button
-            variant="destructive"
-            className="w-full mt-4"
-            onClick={handleLogout}
-          >
+          
+          <Button variant="destructive" className="w-full mt-4" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             Atsijungti
           </Button>

@@ -10,7 +10,6 @@ interface MonthlyBudgetSettingsProps {
   monthlyIncomes: { [key: string]: number };
   defaultMonthlyIncome: number;
   onSaveIncome: (income: number, type: 'default' | 'month', monthYear?: string) => void;
-  // Removed selectedMonth, setSelectedMonth, selectedYear, setSelectedYear, availableYears
 }
 
 const months = [
@@ -35,16 +34,15 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
 }) => {
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
   const currentYear = String(new Date().getFullYear());
-
   const [editingMonth, setEditingMonth] = useState<string>(currentMonth);
   const [editingYear, setEditingYear] = useState<string>(currentYear);
-
   const editingMonthYear = `${editingYear}-${editingMonth}`;
   const currentMonthSpecificIncome = monthlyIncomes[editingMonthYear];
-
+  
   const [inputMonthIncome, setInputMonthIncome] = useState<string>(
     currentMonthSpecificIncome !== undefined ? currentMonthSpecificIncome.toFixed(2) : ""
   );
+  
   const [inputDefaultIncome, setInputDefaultIncome] = useState<string>(defaultMonthlyIncome.toFixed(2));
 
   // Generate available years for the settings dropdown
@@ -69,19 +67,23 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
 
   const handleSaveMonthIncome = () => {
     const parsedIncome = parseFloat(inputMonthIncome);
+    
     if (isNaN(parsedIncome) || parsedIncome < 0) {
       toast.error("Prašome įvesti teigiamą pajamų sumą pasirinktam mėnesiui.");
       return;
     }
+    
     onSaveIncome(parsedIncome, 'month', editingMonthYear);
   };
 
   const handleSaveDefaultIncome = () => {
     const parsedIncome = parseFloat(inputDefaultIncome);
+    
     if (isNaN(parsedIncome) || parsedIncome < 0) {
       toast.error("Prašome įvesti teigiamą numatytąją pajamų sumą.");
       return;
     }
+    
     onSaveIncome(parsedIncome, 'default');
   };
 
@@ -107,6 +109,7 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
               </SelectContent>
             </Select>
           </div>
+          
           <div className="flex-1">
             <Label htmlFor="year-select-settings">Metai</Label>
             <Select value={editingYear} onValueChange={setEditingYear}>
@@ -123,19 +126,19 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
             </Select>
           </div>
         </div>
-
+        
         <div>
           <Label htmlFor="month-income-input" className="text-lg font-semibold">
             Pajamos pasirinktam mėnesiui ({editingMonthYear})
           </Label>
           <div className="flex gap-2 mt-1">
-            <Input
-              id="month-income-input"
-              type="number"
-              value={inputMonthIncome}
-              onChange={(e) => setInputMonthIncome(e.target.value)}
-              placeholder="0.00"
-              step="0.01"
+            <Input 
+              id="month-income-input" 
+              type="number" 
+              value={inputMonthIncome} 
+              onChange={(e) => setInputMonthIncome(e.target.value)} 
+              placeholder="0.00" 
+              step="0.01" 
             />
             <Button onClick={handleSaveMonthIncome}>Išsaugoti</Button>
           </div>
@@ -145,19 +148,19 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
             </p>
           )}
         </div>
-
+        
         <div className="border-t pt-4">
           <Label htmlFor="default-income-input" className="text-lg font-semibold">
             Numatytosios mėnesio pajamos (visada)
           </Label>
           <div className="flex gap-2 mt-1">
-            <Input
-              id="default-income-input"
-              type="number"
-              value={inputDefaultIncome}
-              onChange={(e) => setInputDefaultIncome(e.target.value)}
-              placeholder="0.00"
-              step="0.01"
+            <Input 
+              id="default-income-input" 
+              type="number" 
+              value={inputDefaultIncome} 
+              onChange={(e) => setInputDefaultIncome(e.target.value)} 
+              placeholder="0.00" 
+              step="0.01" 
             />
             <Button onClick={handleSaveDefaultIncome}>Išsaugoti</Button>
           </div>

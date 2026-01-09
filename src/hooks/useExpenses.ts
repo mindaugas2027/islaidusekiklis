@@ -64,7 +64,7 @@ export const useExpenses = () => {
     // Remove the manual ID generation since Supabase will handle it automatically
     const { data, error } = await supabase
       .from('expenses')
-      .insert([{ ...expense }])
+      .insert([expense]) // Pass the expense object directly without adding an ID
       .select()
       .single();
 

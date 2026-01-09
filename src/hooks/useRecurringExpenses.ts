@@ -9,6 +9,7 @@ export const useRecurringExpenses = () => {
 
   useEffect(() => {
     fetchRecurringExpenses();
+    
     const channel = supabase
       .channel('recurring-expenses-changes')
       .on(

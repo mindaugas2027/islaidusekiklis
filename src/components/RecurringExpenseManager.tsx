@@ -32,19 +32,22 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
     e.preventDefault();
     const parsedAmount = parseFloat(amount);
     const parsedDayOfMonth = parseInt(dayOfMonth);
-
+    
     if (!name.trim()) {
       toast.error("Prašome įvesti pasikartojančios išlaidos pavadinimą.");
       return;
     }
+    
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       toast.error("Prašome įvesti teigiamą sumą.");
       return;
     }
+    
     if (!category) {
       toast.error("Prašome pasirinkti kategoriją.");
       return;
     }
+    
     if (isNaN(parsedDayOfMonth) || parsedDayOfMonth < 1 || parsedDayOfMonth > 31) {
       toast.error("Prašome pasirinkti galiojančią mėnesio dieną (1-31).");
       return;
@@ -73,31 +76,33 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
         <form onSubmit={handleAddRecurringExpense} className="space-y-4">
           <div>
             <Label htmlFor="recurring-name">Pavadinimas</Label>
-            <Input
-              id="recurring-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Pvz., Būsto paskola"
-              required
+            <Input 
+              id="recurring-name" 
+              type="text" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="Pvz., Būsto paskola" 
+              required 
             />
           </div>
+          
           <div>
             <Label htmlFor="recurring-amount">Suma (€)</Label>
-            <Input
-              id="recurring-amount"
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              step="0.01"
-              required
+            <Input 
+              id="recurring-amount" 
+              type="number" 
+              value={amount} 
+              onChange={(e) => setAmount(e.target.value)} 
+              placeholder="0.00" 
+              step="0.01" 
+              required 
             />
           </div>
+          
           <div>
             <Label htmlFor="recurring-category">Kategorija</Label>
-            <Select
-              value={category}
+            <Select 
+              value={category} 
               onValueChange={(value: string) => setCategory(value)}
               disabled={categories.length === 0}
             >
@@ -113,9 +118,13 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
               </SelectContent>
             </Select>
           </div>
+          
           <div>
             <Label htmlFor="recurring-day">Mėnesio diena</Label>
-            <Select value={dayOfMonth} onValueChange={setDayOfMonth}>
+            <Select 
+              value={dayOfMonth} 
+              onValueChange={setDayOfMonth}
+            >
               <SelectTrigger id="recurring-day">
                 <SelectValue placeholder="Pasirinkite dieną" />
               </SelectTrigger>
@@ -128,11 +137,12 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
               </SelectContent>
             </Select>
           </div>
+          
           <Button type="submit" className="w-full" disabled={categories.length === 0}>
             Pridėti pasikartojančią išlaidą
           </Button>
         </form>
-
+        
         {recurringExpenses.length === 0 ? (
           <p className="text-center text-gray-500">Kol kas nėra pasikartojančių išlaidų.</p>
         ) : (
@@ -140,8 +150,8 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
             <Label className="text-lg font-semibold">Esamos pasikartojančios išlaidos:</Label>
             <ul className="grid grid-cols-1 gap-2">
               {recurringExpenses.map((expense) => (
-                <li
-                  key={expense.id}
+                <li 
+                  key={expense.id} 
                   className="flex items-center justify-between p-2 border rounded-md bg-secondary text-secondary-foreground"
                 >
                   <div>
@@ -150,9 +160,9 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                       {expense.amount.toFixed(2)} € | {expense.category} | Kiekvieno mėnesio {expense.dayOfMonth} d.
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
                     onClick={() => onDeleteRecurringExpense(expense.id)}
                     className="h-auto p-1"
                   >

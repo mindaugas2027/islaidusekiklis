@@ -34,13 +34,15 @@ const MonthYearNavigator: React.FC<MonthYearNavigatorProps> = ({
     let currentMonthIndex = months.findIndex(m => m.value === selectedMonth);
     let newMonthValue = "";
     let newYearValue = selectedYear;
-
-    if (currentMonthIndex === 0) { // January, go to December of previous year
+    
+    if (currentMonthIndex === 0) {
+      // January, go to December of previous year
       newMonthValue = "12";
       newYearValue = String(parseInt(selectedYear) - 1);
     } else {
       newMonthValue = months[currentMonthIndex - 1].value;
     }
+    
     setSelectedMonth(newMonthValue);
     setSelectedYear(newYearValue);
   };
@@ -49,13 +51,15 @@ const MonthYearNavigator: React.FC<MonthYearNavigatorProps> = ({
     let currentMonthIndex = months.findIndex(m => m.value === selectedMonth);
     let newMonthValue = "";
     let newYearValue = selectedYear;
-
-    if (currentMonthIndex === months.length - 1) { // December, go to January of next year
+    
+    if (currentMonthIndex === months.length - 1) {
+      // December, go to January of next year
       newMonthValue = "01";
       newYearValue = String(parseInt(selectedYear) + 1);
     } else {
       newMonthValue = months[currentMonthIndex + 1].value;
     }
+    
     setSelectedMonth(newMonthValue);
     setSelectedYear(newYearValue);
   };
@@ -68,9 +72,11 @@ const MonthYearNavigator: React.FC<MonthYearNavigatorProps> = ({
         <ChevronLeft className="h-4 w-4" />
         <span className="sr-only">Ankstesnis mėnuo</span>
       </Button>
+      
       <span className="text-lg font-semibold min-w-[120px] text-center">
         {currentMonthLabel} {selectedYear}
       </span>
+      
       <Button variant="outline" size="icon" onClick={handleNextMonth}>
         <ChevronRight className="h-4 w-4" />
         <span className="sr-only">Kitas mėnuo</span>
