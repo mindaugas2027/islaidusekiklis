@@ -49,38 +49,64 @@ export const useCategories = () => {
   }, [refreshCategories]);
 
   const addCategory = async (name: string) => {
-    const { error } = await supabase
-      .from('categories')
-      .insert([{ name }]);
-    
-    if (error) {
-      if (error.code === '23505') { // Unique violation
-        toast.error("Tokia kategorija jau egzistuoja.");
-      } else {
-        toast.error("Nepavyko pridėti kategorijos");
-        console.error(error);
+    // Optimistically update UI
+    setCategories(prevCategories => [...prevCategories, name].sort());
+
+    try {
+      const { error } = await supabase
+        .from('categories')
+        .insert([{ name }]);
+      
+      if (error) {
+        // Revert optimistic update on error
+        setCategories(prevCategories => prevCategories.filter(cat => cat !== name));
+        if (error.code === '23505') { // Unique violation
+          toast.error("Tokia kategorija jau egzistuoja.");
+        } else {
+          toast.error("Nepavyko pridėti kategorijos");
+          console.error(error);
+        }
+        return false;
       }
+      
+      toast.success(`Kategorija "${name}" pridėta.`);
+      return true;
+    } catch (error) {
+      // Revert optimistic update on error
+      setCategories(prevCategories => prevCategories.filter(cat => cat !== name));
+      toast.error("Nepavyko pridėti kategorijos");
+      console.error(error);
       return false;
     }
-    
-    toast.success(`Kategorija "${name}" pridėta.`);
-    return true;
   };
 
   const deleteCategory = async (name: string) => {
-    const { error } = await supabase
-      .from('categories')
-      .delete()
-      .eq('name', name);
-    
-    if (error) {
+    // Optimistically update UI
+    setCategories(prevCategories => prevCategories.filter(cat => cat !== name));
+
+    try {
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('name', name);
+      
+      if (error) {
+        // Revert optimistic update on error
+        refreshCategories();
+        toast.error("Nepavyko ištrinti kategorijos");
+        console.error(error);
+        return false;
+      }
+      
+      toast.success(`Kategorija "${name}" ištrinta.`);
+      return true;
+    } catch (error) {
+      // Revert optimistic update on error
+      refreshCategories();
       toast.error("Nepavyko ištrinti kategorijos");
       console.error(error);
       return false;
     }
-    
-    toast.success(`Kategorija "${name}" ištrinta.`);
-    return true;
   };
 
   return {
