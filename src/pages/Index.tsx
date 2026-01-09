@@ -195,7 +195,7 @@ const Index = () => {
         // Removed selectedMonth, setSelectedMonth, selectedYear, setSelectedYear, availableYears
       />
       <div className="max-w-6xl mx-auto space-y-8">
-        <h1 className="text-5xl font-extrabold text-center mb-10">
+        <h1 className="text-6xl font-extrabold text-center mb-10 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500 drop-shadow-lg">
           Išlaidų Sekiklis
         </h1>
 
