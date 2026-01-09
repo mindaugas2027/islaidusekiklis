@@ -57,20 +57,47 @@ export const useExpenses = () => {
   }, [refreshExpenses]);
 
   const addExpense = async (expense: Omit<Expense, 'id'>) => {
-    const { data, error } = await supabase
-      .from('expenses')
-      .insert([expense])
-      .select()
-      .single();
+    // Optimistically update UI
+    const tempId = `temp-${Date.now()}`;
+    const tempExpense: Expense = {
+      ...expense,
+      id: tempId,
+      user_id: (await supabase.auth.getUser()).data.user?.id || '',
+      created_at: new Date().toISOString()
+    };
+    
+    setExpenses(prevExpenses => [tempExpense, ...prevExpenses]);
+    
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .insert([expense])
+        .select()
+        .single();
 
-    if (error) {
+      if (error) {
+        // Revert optimistic update on error
+        setExpenses(prevExpenses => prevExpenses.filter(exp => exp.id !== tempId));
+        toast.error("Nepavyko pridėti išlaidos");
+        console.error(error);
+        return null;
+      }
+
+      // Replace temporary expense with actual data from backend
+      setExpenses(prevExpenses => {
+        const withoutTemp = prevExpenses.filter(exp => exp.id !== tempId);
+        return [data as Expense, ...withoutTemp];
+      });
+
+      toast.success("Išlaida sėkmingai pridėta!");
+      return data as Expense;
+    } catch (error) {
+      // Revert optimistic update on error
+      setExpenses(prevExpenses => prevExpenses.filter(exp => exp.id !== tempId));
       toast.error("Nepavyko pridėti išlaidos");
       console.error(error);
       return null;
     }
-
-    toast.success("Išlaida sėkmingai pridėta!");
-    return data as Expense;
   };
 
   const deleteExpense = async (id: string) => {
