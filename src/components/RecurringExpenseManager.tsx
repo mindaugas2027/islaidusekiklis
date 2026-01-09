@@ -30,7 +30,6 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
 
   const handleAddRecurringExpense = (e: React.FormEvent) => {
     e.preventDefault();
-    
     const parsedAmount = parseFloat(amount);
     const parsedDayOfMonth = parseInt(dayOfMonth);
     
@@ -65,7 +64,6 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
     setAmount("");
     setCategory(categories.length > 0 ? categories[0] : "");
     setDayOfMonth("1");
-    
     toast.success(`Pasikartojanti išlaida "${name.trim()}" pridėta.`);
   };
 
@@ -78,34 +76,32 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
         <form onSubmit={handleAddRecurringExpense} className="space-y-4">
           <div>
             <Label htmlFor="recurring-name">Pavadinimas</Label>
-            <Input
-              id="recurring-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Pvz., Būsto paskola"
-              required
+            <Input 
+              id="recurring-name" 
+              type="text" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="Pvz., Būsto paskola" 
+              required 
             />
           </div>
-          
           <div>
             <Label htmlFor="recurring-amount">Suma (€)</Label>
-            <Input
-              id="recurring-amount"
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              step="0.01"
-              required
+            <Input 
+              id="recurring-amount" 
+              type="number" 
+              value={amount} 
+              onChange={(e) => setAmount(e.target.value)} 
+              placeholder="0.00" 
+              step="0.01" 
+              required 
             />
           </div>
-          
           <div>
             <Label htmlFor="recurring-category">Kategorija</Label>
             <Select 
               value={category} 
-              onValueChange={(value: string) => setCategory(value)}
+              onValueChange={(value: string) => setCategory(value)} 
               disabled={categories.length === 0}
             >
               <SelectTrigger id="recurring-category">
@@ -120,7 +116,6 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
               </SelectContent>
             </Select>
           </div>
-          
           <div>
             <Label htmlFor="recurring-day">Mėnesio diena</Label>
             <Select 
@@ -139,10 +134,9 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
               </SelectContent>
             </Select>
           </div>
-          
           <Button 
             type="submit" 
-            className="w-full"
+            className="w-full" 
             disabled={categories.length === 0}
           >
             Pridėti pasikartojančią išlaidą
@@ -158,7 +152,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
               {recurringExpenses.map((expense) => (
                 <li 
                   key={expense.id} 
-                  className="flex items-center justify-between p-2 border rounded-md bg-secondary text-secondary-foreground"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-2 border rounded-md bg-secondary text-secondary-foreground gap-2"
                 >
                   <div>
                     <span className="font-medium">{expense.name}</span>
@@ -166,11 +160,11 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                       {expense.amount.toFixed(2)} € | {expense.category} | Kiekvieno mėnesio {expense.day_of_month} d.
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDeleteRecurringExpense(expense.id)}
-                    className="h-auto p-1"
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => onDeleteRecurringExpense(expense.id)} 
+                    className="h-auto p-1 self-end sm:self-auto"
                   >
                     <X className="h-4 w-4 text-destructive" />
                   </Button>

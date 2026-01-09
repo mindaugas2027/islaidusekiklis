@@ -84,7 +84,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
         <CardTitle className="text-2xl font-bold text-center">Kategorijų valdymas</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <form onSubmit={handleAddCategory} className="flex gap-2">
+        <form onSubmit={handleAddCategory} className="flex flex-col sm:flex-row gap-2">
           <Input 
             type="text" 
             placeholder="Naujos kategorijos pavadinimas" 
@@ -93,7 +93,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
             className="flex-grow" 
             disabled={isAdding} 
           />
-          <Button type="submit" disabled={isAdding}>
+          <Button type="submit" disabled={isAdding} className="w-full sm:w-auto">
             {isAdding ? "Pridedama..." : "Pridėti"}
           </Button>
         </form>
@@ -109,12 +109,12 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
                   key={category} 
                   className="flex items-center justify-between p-2 border rounded-md bg-secondary text-secondary-foreground"
                 >
-                  <span>{category}</span>
+                  <span className="truncate">{category}</span>
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={() => handleDeleteCategory(category)} 
-                    className="h-auto p-1"
+                    className="h-auto p-1 flex-shrink-0"
                   >
                     <X className="h-4 w-4 text-destructive" />
                   </Button>

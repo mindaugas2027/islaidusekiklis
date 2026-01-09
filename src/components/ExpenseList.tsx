@@ -39,11 +39,11 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDeleteExpense }) 
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Aprašymas</TableHead>
-                  <TableHead>Kategorija</TableHead>
-                  <TableHead className="text-right">Suma (€)</TableHead>
-                  <TableHead className="text-right">Veiksmai</TableHead>
+                  <TableHead className="whitespace-nowrap">Data</TableHead>
+                  <TableHead className="whitespace-nowrap">Aprašymas</TableHead>
+                  <TableHead className="whitespace-nowrap">Kategorija</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">Suma (€)</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">Veiksmai</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -54,15 +54,15 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDeleteExpense }) 
                       key={expense.id} 
                       className={deletingId === expense.id ? "opacity-50" : ""}
                     >
-                      <TableCell>{expense.date}</TableCell>
-                      <TableCell>{expense.description}</TableCell>
-                      <TableCell>{expense.category}</TableCell>
-                      <TableCell className="text-right">{expense.amount.toFixed(2)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{expense.date}</TableCell>
+                      <TableCell className="max-w-[150px] truncate">{expense.description}</TableCell>
+                      <TableCell className="whitespace-nowrap">{expense.category}</TableCell>
+                      <TableCell className="text-right whitespace-nowrap">{expense.amount.toFixed(2)}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(expense.id)}
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          onClick={() => handleDelete(expense.id)} 
                           disabled={deletingId === expense.id}
                         >
                           {deletingId === expense.id ? (

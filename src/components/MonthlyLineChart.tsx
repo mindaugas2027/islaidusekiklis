@@ -21,40 +21,44 @@ const MonthlyLineChart: React.FC<MonthlyLineChartProps> = ({ monthlyData, select
         {!hasData ? (
           <p className="text-center text-gray-500">Nėra išlaidų pasirinktiems metams.</p>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart
-              data={monthlyData}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
-              <XAxis 
-                dataKey="name" 
-                stroke="hsl(var(--foreground))" 
-              />
-              <YAxis 
-                stroke="hsl(var(--foreground))" 
-              />
-              <Tooltip 
-                formatter={(value: number) => `${value.toFixed(2)} €`}
-                labelFormatter={(label: string) => `${label} mėnuo`}
-                contentStyle={{ 
-                  backgroundColor: "hsl(var(--card))",
-                  borderColor: "hsl(var(--border))",
-                  borderRadius: "0.5rem",
-                }}
-                itemStyle={{ color: "hsl(var(--foreground))" }}
-              />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="total"
-                stroke="hsl(var(--primary))"
-                activeDot={{ r: 8 }}
-                name="Išlaidos"
-                strokeWidth={2}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={monthlyData}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
+                <XAxis 
+                  dataKey="name" 
+                  stroke="hsl(var(--foreground))" 
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis 
+                  stroke="hsl(var(--foreground))" 
+                  tick={{ fontSize: 12 }}
+                />
+                <Tooltip 
+                  formatter={(value: number) => [`${value.toFixed(2)} €`, "Išlaidos"]}
+                  labelFormatter={(label: string) => `${label} mėnuo`}
+                  contentStyle={{ 
+                    backgroundColor: "hsl(var(--card))", 
+                    borderColor: "hsl(var(--border))", 
+                    borderRadius: "0.5rem",
+                  }}
+                  itemStyle={{ color: "hsl(var(--foreground))" }}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="total" 
+                  stroke="hsl(var(--primary))" 
+                  activeDot={{ r: 8 }} 
+                  name="Išlaidos" 
+                  strokeWidth={2}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         )}
       </CardContent>
     </Card>

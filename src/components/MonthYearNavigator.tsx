@@ -67,17 +67,25 @@ const MonthYearNavigator: React.FC<MonthYearNavigatorProps> = ({
   const currentMonthLabel = months.find(m => m.value === selectedMonth)?.label;
 
   return (
-    <div className="flex items-center justify-center gap-4 p-2 border rounded-md bg-card shadow-sm">
-      <Button variant="outline" size="icon" onClick={handlePreviousMonth}>
+    <div className="flex items-center justify-center gap-2 sm:gap-4 p-2 border rounded-md bg-card shadow-sm w-full max-w-md">
+      <Button 
+        variant="outline" 
+        size="icon" 
+        onClick={handlePreviousMonth}
+        className="h-8 w-8 sm:h-10 sm:w-10"
+      >
         <ChevronLeft className="h-4 w-4" />
         <span className="sr-only">Ankstesnis mėnuo</span>
       </Button>
-      
-      <span className="text-lg font-semibold min-w-[120px] text-center">
+      <span className="text-lg font-semibold min-w-[100px] sm:min-w-[120px] text-center">
         {currentMonthLabel} {selectedYear}
       </span>
-      
-      <Button variant="outline" size="icon" onClick={handleNextMonth}>
+      <Button 
+        variant="outline" 
+        size="icon" 
+        onClick={handleNextMonth}
+        className="h-8 w-8 sm:h-10 sm:w-10"
+      >
         <ChevronRight className="h-4 w-4" />
         <span className="sr-only">Kitas mėnuo</span>
       </Button>

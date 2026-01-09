@@ -50,9 +50,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           <span className="sr-only">Atidaryti nustatymus</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-full sm:max-w-md flex flex-col">
-        <SheetHeader>
-          <SheetTitle className="text-3xl font-bold text-center">Nustatymai</SheetTitle>
+      <SheetContent side="left" className="w-full sm:max-w-md flex flex-col p-0">
+        <SheetHeader className="p-4 border-b">
+          <SheetTitle className="text-2xl sm:text-3xl font-bold text-center">Nustatymai</SheetTitle>
         </SheetHeader>
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           <CategoryManager

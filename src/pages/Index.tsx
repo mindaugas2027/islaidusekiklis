@@ -16,16 +16,8 @@ import { useMonthlyIncomes } from "@/hooks/useMonthlyIncomes";
 import { useRecurringExpenses } from "@/hooks/useRecurringExpenses";
 
 const DEFAULT_CATEGORIES = [
-  "Maistas",
-  "Kuras",
-  "Pramogos",
-  "Transportas",
-  "Būstas",
-  "Komunalinės paslaugos",
-  "Sveikata",
-  "Mokslas",
-  "Apranga",
-  "Kita"
+  "Maistas", "Kuras", "Pramogos", "Transportas", "Būstas", 
+  "Komunalinės paslaugos", "Sveikata", "Mokslas", "Apranga", "Kita"
 ];
 
 const months = [
@@ -48,7 +40,7 @@ const Index = () => {
   const { categories, loading: categoriesLoading, addCategory, deleteCategory } = useCategories();
   const { monthlyIncomes, defaultMonthlyIncome, saveIncome } = useMonthlyIncomes();
   const { recurringExpenses, addRecurringExpense, deleteRecurringExpense } = useRecurringExpenses();
-  
+
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
   const currentYear = String(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
@@ -90,7 +82,8 @@ const Index = () => {
       const currentMonthYearPrefix = `${selectedYear}-${selectedMonth}`;
       
       recurringExpenses.forEach(recExpense => {
-        if (recExpense.day_of_month <= maxDayToShow) { // Use correct column name
+        if (recExpense.day_of_month <= maxDayToShow) {
+          // Use correct column name
           const tempDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, recExpense.day_of_month);
           const actualDay = Math.min(recExpense.day_of_month, lastDayOfMonth(tempDate).getDate());
           const expenseDate = format(new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, actualDay), 'yyyy-MM-dd');
@@ -181,7 +174,7 @@ const Index = () => {
   const currentMonthIncome = monthlyIncomes[selectedMonthYear] !== undefined && monthlyIncomes[selectedMonthYear] !== null 
     ? monthlyIncomes[selectedMonthYear] 
     : defaultMonthlyIncome;
-  
+
   const previousMonthCarryOver = useMemo(() => {
     let prevMonth = parseInt(selectedMonth) - 1;
     let prevYear = parseInt(selectedYear);
@@ -202,11 +195,10 @@ const Index = () => {
     });
     
     const totalExpensesForPreviousMonth = expensesForPreviousMonth.reduce((sum, expense) => sum + expense.amount, 0);
-    
-    const previousMonthIncome = monthlyIncomes[prevMonthYear] !== undefined && monthlyIncomes[prevMonthYear] !== null
-      ? monthlyIncomes[prevMonthYear]
+    const previousMonthIncome = monthlyIncomes[prevMonthYear] !== undefined && monthlyIncomes[prevMonthYear] !== null 
+      ? monthlyIncomes[prevMonthYear] 
       : defaultMonthlyIncome;
-    
+      
     return previousMonthIncome - totalExpensesForPreviousMonth;
   }, [expenses, monthlyIncomes, defaultMonthlyIncome, selectedMonth, selectedYear]);
 
@@ -238,7 +230,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-background text-foreground p-2 sm:p-4 md:p-6 lg:p-8">
       <Sidebar 
         categories={categories}
         onAddCategory={handleAddCategory}
@@ -251,8 +243,8 @@ const Index = () => {
         onDeleteRecurringExpense={handleDeleteRecurringExpense}
       />
       
-      <div className="max-w-6xl mx-auto space-y-8">
-        <h1 className="text-6xl font-extrabold text-center mb-10 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500 drop-shadow-lg">
+      <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 pt-16">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-center mb-6 sm:mb-8 lg:mb-10 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500 drop-shadow-lg">
           Išlaidų Sekiklis
         </h1>
         
@@ -265,11 +257,8 @@ const Index = () => {
           />
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <ExpenseForm 
-            onAddExpense={handleAddExpense} 
-            categories={categories} 
-          />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+          <ExpenseForm onAddExpense={handleAddExpense} categories={categories} />
           <IncomeTracker 
             monthlyIncome={currentMonthIncome} 
             totalExpenses={totalExpensesForSelectedMonth} 
@@ -277,21 +266,21 @@ const Index = () => {
           />
         </div>
         
-        <ExpenseChart 
-          expenses={filteredExpenses} 
-          selectedMonth={selectedMonth} 
-          selectedYear={selectedYear} 
-        />
-        
-        <MonthlyLineChart 
-          monthlyData={monthlyExpenseTotals} 
-          selectedYear={selectedYear} 
-        />
-        
-        <ExpenseList 
-          expenses={filteredExpenses} 
-          onDeleteExpense={handleDeleteExpense} 
-        />
+        <div className="space-y-6 sm:space-y-8">
+          <ExpenseChart 
+            expenses={filteredExpenses} 
+            selectedMonth={selectedMonth} 
+            selectedYear={selectedYear} 
+          />
+          <MonthlyLineChart 
+            monthlyData={monthlyExpenseTotals} 
+            selectedYear={selectedYear} 
+          />
+          <ExpenseList 
+            expenses={filteredExpenses} 
+            onDeleteExpense={handleDeleteExpense} 
+          />
+        </div>
       </div>
     </div>
   );

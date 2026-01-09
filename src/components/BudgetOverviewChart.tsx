@@ -72,32 +72,39 @@ const BudgetOverviewChart: React.FC<BudgetOverviewChartProps> = ({ monthlyIncome
               {isOverBudget ? "Viršytas biudžetas:" : "Liko biudžeto:"}
               {remainingBudget.toFixed(2)} €
             </p>
-            <ResponsiveContainer width="100%" height={150}>
-              <BarChart
-                layout="vertical"
-                data={chartData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--muted))" />
-                <XAxis 
-                  type="number" 
-                  stroke="hsl(var(--foreground))" 
-                  domain={[0, maxYAxisValue]} // Set max value to income
-                />
-                <YAxis dataKey="name" type="category" hide={true} />
-                <Tooltip 
-                  formatter={(value: number) => `${value.toFixed(2)} €`}
-                  contentStyle={{ 
-                    backgroundColor: "hsl(var(--card))", 
-                    borderColor: "hsl(var(--border))", 
-                    borderRadius: "0.5rem",
-                  }}
-                  itemStyle={{ color: "hsl(var(--foreground))" }}
-                />
-                <Legend />
-                {chartBars}
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-[150px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  layout="vertical"
+                  data={chartData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--muted))" />
+                  <XAxis 
+                    type="number" 
+                    stroke="hsl(var(--foreground))" 
+                    domain={[0, maxYAxisValue]} // Set max value to income
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    hide={true} 
+                  />
+                  <Tooltip 
+                    formatter={(value: number) => [`${value.toFixed(2)} €`, "Suma"]}
+                    contentStyle={{ 
+                      backgroundColor: "hsl(var(--card))", 
+                      borderColor: "hsl(var(--border))", 
+                      borderRadius: "0.5rem",
+                    }}
+                    itemStyle={{ color: "hsl(var(--foreground))" }}
+                  />
+                  <Legend />
+                  {chartBars}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
             <div className="mt-4 text-sm text-gray-600">
               <p>Išleista: {usedPercentage.toFixed(2)}%</p>
               {monthlyIncome > 0 && !isOverBudget && (

@@ -32,22 +32,18 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsedAmount = parseFloat(amount);
-    
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       toast.error("Prašome įvesti teigiamą sumą.");
       return;
     }
-    
     if (!category) {
       toast.error("Prašome pasirinkti kategoriją.");
       return;
     }
-    
     if (!date) {
       toast.error("Prašome pasirinkti datą.");
       return;
     }
-    
     setIsSubmitting(true);
     const newExpense: Omit<Expense, 'id'> = {
       amount: parsedAmount,
@@ -55,7 +51,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
       description: description.trim(),
       date: date.toISOString().split("T")[0], // Konvertuojame Date į YYYY-MM-DD stringą
     };
-    
     try {
       await onAddExpense(newExpense);
       // Reset form immediately for better UX
@@ -88,12 +83,11 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
               required 
             />
           </div>
-          
           <div>
             <Label htmlFor="category">Kategorija</Label>
             <Select 
               value={category} 
-              onValueChange={(value: string) => setCategory(value)}
+              onValueChange={(value: string) => setCategory(value)} 
               disabled={categories.length === 0 || isSubmitting}
             >
               <SelectTrigger id="category">
@@ -108,7 +102,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
               </SelectContent>
             </Select>
           </div>
-          
           <div>
             <Label htmlFor="description">Aprašymas (neprivaloma)</Label>
             <Input 
@@ -120,16 +113,10 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
               disabled={isSubmitting} 
             />
           </div>
-          
           <div>
             <Label htmlFor="date">Data</Label>
-            <DatePicker 
-              date={date} 
-              setDate={setDate} 
-              placeholder="Pasirinkite datą" 
-            />
+            <DatePicker date={date} setDate={setDate} placeholder="Pasirinkite datą" />
           </div>
-          
           <Button type="submit" className="w-full" disabled={categories.length === 0 || isSubmitting}>
             {isSubmitting ? "Pridedama..." : "Pridėti išlaidą"}
           </Button>
