@@ -54,7 +54,7 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
 
   useEffect(() => {
     // Properly handle when income is 0
-    if (currentMonthSpecificIncome !== undefined && currentMonthSpecificIncome !== null) {
+    if (currentMonthSpecificIncome !== undefined) {
       setInputMonthIncome(currentMonthSpecificIncome.toFixed(2));
     } else {
       setInputMonthIncome("");
@@ -66,9 +66,9 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
   }, [defaultMonthlyIncome]);
 
   const handleSaveMonthIncome = () => {
-    const parsedIncome = parseFloat(inputMonthIncome);
-    
     // Allow 0 as a valid value
+    const parsedIncome = inputMonthIncome === "" ? NaN : parseFloat(inputMonthIncome);
+    
     if (isNaN(parsedIncome) || parsedIncome < 0) {
       toast.error("Prašome įvesti teigiamą pajamų sumą pasirinktam mėnesiui.");
       return;
@@ -79,13 +79,11 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
 
   const handleSaveDefaultIncome = () => {
     const parsedIncome = parseFloat(inputDefaultIncome);
-    
     // Allow 0 as a valid value
     if (isNaN(parsedIncome) || parsedIncome < 0) {
       toast.error("Prašome įvesti teigiamą numatytąją pajamų sumą.");
       return;
     }
-    
     onSaveIncome(parsedIncome, 'default');
   };
 
@@ -133,13 +131,13 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
             Pajamos pasirinktam mėnesiui ({editingMonthYear})
           </Label>
           <div className="flex gap-2 mt-1">
-            <Input
-              id="month-income-input"
-              type="number"
-              value={inputMonthIncome}
-              onChange={(e) => setInputMonthIncome(e.target.value)}
-              placeholder="0.00"
-              step="0.01"
+            <Input 
+              id="month-income-input" 
+              type="number" 
+              value={inputMonthIncome} 
+              onChange={(e) => setInputMonthIncome(e.target.value)} 
+              placeholder="0.00" 
+              step="0.01" 
             />
             <Button onClick={handleSaveMonthIncome}>Išsaugoti</Button>
           </div>
@@ -155,13 +153,13 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
             Numatytosios mėnesio pajamos (visada)
           </Label>
           <div className="flex gap-2 mt-1">
-            <Input
-              id="default-income-input"
-              type="number"
-              value={inputDefaultIncome}
-              onChange={(e) => setInputDefaultIncome(e.target.value)}
-              placeholder="0.00"
-              step="0.01"
+            <Input 
+              id="default-income-input" 
+              type="number" 
+              value={inputDefaultIncome} 
+              onChange={(e) => setInputDefaultIncome(e.target.value)} 
+              placeholder="0.00" 
+              step="0.01" 
             />
             <Button onClick={handleSaveDefaultIncome}>Išsaugoti</Button>
           </div>
