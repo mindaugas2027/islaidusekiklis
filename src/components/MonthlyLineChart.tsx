@@ -31,11 +31,11 @@ const MonthlyLineChart: React.FC<MonthlyLineChartProps> = ({ monthlyData, select
                 <XAxis 
                   dataKey="name" 
                   stroke="hsl(var(--foreground))" 
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 12 }} 
                 />
                 <YAxis 
                   stroke="hsl(var(--foreground))" 
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 12 }} 
                 />
                 <Tooltip 
                   formatter={(value: number) => [`${value.toFixed(2)} €`, "Išlaidos"]}
@@ -54,7 +54,7 @@ const MonthlyLineChart: React.FC<MonthlyLineChartProps> = ({ monthlyData, select
                   stroke="hsl(var(--primary))" 
                   activeDot={{ r: 8 }} 
                   name="Išlaidos" 
-                  strokeWidth={2}
+                  strokeWidth={2} 
                 />
               </LineChart>
             </ResponsiveContainer>
