@@ -44,12 +44,12 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
   };
 
   const handleDeleteCategory = async (category: string) => {
-    // Immediately add to deleting set for UI feedback
+    // Immediately remove from UI by adding to deleting set
     setDeletingCategories(prev => new Set(prev).add(category));
     
     try {
       await onDeleteCategory(category);
-      toast.success(`Kategorija "${category}" ištrinta.`);
+      // Success message is handled in the hook
     } catch (error) {
       toast.error("Nepavyko ištrinti kategorijos");
       // Remove from deleting set if failed
@@ -60,6 +60,9 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
       });
     }
   };
+
+  // Filter out categories that are being deleted
+  const visibleCategories = categories.filter(category => !deletingCategories.has(category));
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -81,18 +84,16 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
           </Button>
         </form>
         
-        {categories.length === 0 ? (
+        {visibleCategories.length === 0 ? (
           <p className="text-center text-gray-500">Kol kas nėra kategorijų. Pridėkite naują!</p>
         ) : (
           <div className="space-y-2">
             <Label className="text-lg font-semibold">Esamos kategorijos:</Label>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {categories.map((category) => (
+              {visibleCategories.map((category) => (
                 <li 
                   key={category} 
-                  className={`flex items-center justify-between p-2 border rounded-md bg-secondary text-secondary-foreground transition-opacity ${
-                    deletingCategories.has(category) ? "opacity-50" : ""
-                  }`}
+                  className="flex items-center justify-between p-2 border rounded-md bg-secondary text-secondary-foreground"
                 >
                   <span>{category}</span>
                   <Button 
@@ -100,13 +101,8 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
                     size="sm" 
                     onClick={() => handleDeleteCategory(category)} 
                     className="h-auto p-1"
-                    disabled={deletingCategories.has(category)}
                   >
-                    {deletingCategories.has(category) ? (
-                      "Trinama..."
-                    ) : (
-                      <X className="h-4 w-4 text-destructive" />
-                    )}
+                    <X className="h-4 w-4 text-destructive" />
                   </Button>
                 </li>
               ))}
