@@ -36,12 +36,12 @@ const BudgetOverviewChart: React.FC<BudgetOverviewChartProps> = ({ monthlyIncome
     chartData = [
       {
         name: "Mėnesio biudžetas", // 'name' property is still useful for Tooltip/Legend
-        panaudota: totalExpenses,
+        išleista: totalExpenses,
         liko: remainingBudget,
       }
     ];
     chartBars = [
-      <Bar key="panaudota" dataKey="panaudota" stackId="a" fill="hsl(var(--destructive))" name="Panaudota" />,
+      <Bar key="išleista" dataKey="išleista" stackId="a" fill="hsl(var(--destructive))" name="Išleista" />,
       <Bar key="liko" dataKey="liko" stackId="a" fill="hsl(142.1 76.2% 36.3%)" name="Liko" />,
     ];
   }
@@ -99,7 +99,7 @@ const BudgetOverviewChart: React.FC<BudgetOverviewChartProps> = ({ monthlyIncome
               </BarChart>
             </ResponsiveContainer>
             <div className="mt-4 text-sm text-gray-600">
-              <p>Panaudota: {usedPercentage.toFixed(2)}%</p>
+              <p>Išleista: {usedPercentage.toFixed(2)}%</p>
               {monthlyIncome > 0 && !isOverBudget && (
                 <p>Liko: {remainingPercentage.toFixed(2)}%</p>
               )}
