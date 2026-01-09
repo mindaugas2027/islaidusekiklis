@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Expense } from "@/types/expense";
 import { toast } from "sonner";
+import { DatePicker } from "@/components/DatePicker"; // Importuojame naują DatePicker
 
 interface ExpenseFormProps {
   onAddExpense: (expense: Expense) => void;
@@ -16,7 +17,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
   const [amount, setAmount] = useState<string>("");
   const [category, setCategory] = useState<string>(categories.length > 0 ? categories[0] : ""); // Default to first category or empty
   const [description, setDescription] = useState<string>("");
-  const [date, setDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState<Date | undefined>(new Date()); // Pakeista į Date objektą
 
   // Update category state if categories change and current category is no longer valid
   useEffect(() => {
@@ -43,19 +44,23 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
       toast.error("Prašome pasirinkti kategoriją.");
       return;
     }
+    if (!date) {
+      toast.error("Prašome pasirinkti datą.");
+      return;
+    }
 
     const newExpense: Expense = {
       id: Date.now().toString(),
       amount: parsedAmount,
       category,
       description,
-      date,
+      date: date.toISOString().split("T")[0], // Konvertuojame Date į YYYY-MM-DD stringą
     };
 
     onAddExpense(newExpense);
     setAmount("");
     setDescription("");
-    setDate(new Date().toISOString().split("T")[0]);
+    setDate(new Date()); // Nustatome dabartinę datą po pridėjimo
     toast.success("Išlaida sėkmingai pridėta!");
   };
 
@@ -110,13 +115,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
           </div>
           <div>
             <Label htmlFor="date">Data</Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-            />
+            <DatePicker date={date} setDate={setDate} /> {/* Naudojame naują DatePicker komponentą */}
           </div>
           <Button type="submit" className="w-full" disabled={categories.length === 0}>
             Pridėti išlaidą
