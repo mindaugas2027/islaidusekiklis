@@ -4,7 +4,7 @@ import ExpenseForm from "@/components/ExpenseForm";
 import ExpenseList from "@/components/ExpenseList";
 import ExpenseChart from "@/components/ExpenseChart";
 import IncomeTracker from "@/components/IncomeTracker";
-import CategoryManager from "@/components/CategoryManager"; // Import CategoryManager
+import Sidebar from "@/components/Sidebar"; // Import Sidebar
 import { Expense } from "@/types/expense";
 import { toast } from "sonner";
 
@@ -16,8 +16,9 @@ const DEFAULT_CATEGORIES = [
 const Index = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [monthlyIncome, setMonthlyIncome] = useState<number>(0);
 
-  // Load expenses and categories from localStorage on initial render
+  // Load expenses, categories, and monthly income from localStorage on initial render
   useEffect(() => {
     const storedExpenses = localStorage.getItem("expenses");
     if (storedExpenses) {
@@ -30,6 +31,14 @@ const Index = () => {
     } else {
       setCategories(DEFAULT_CATEGORIES); // Set default categories if none are stored
     }
+
+    const storedIncome = localStorage.getItem("monthlyIncome");
+    if (storedIncome) {
+      const parsedIncome = parseFloat(storedIncome);
+      if (!isNaN(parsedIncome)) {
+        setMonthlyIncome(parsedIncome);
+      }
+    }
   }, []);
 
   // Save expenses to localStorage whenever they change
@@ -41,6 +50,11 @@ const Index = () => {
   useEffect(() => {
     localStorage.setItem("categories", JSON.stringify(categories));
   }, [categories]);
+
+  // Save monthly income to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("monthlyIncome", monthlyIncome.toString());
+  }, [monthlyIncome]);
 
   const handleAddExpense = (newExpense: Expense) => {
     setExpenses((prevExpenses) => [...prevExpenses, newExpense]);
@@ -73,6 +87,10 @@ const Index = () => {
     toast.success(`Kategorija "${categoryToDelete}" ištrinta.`);
   };
 
+  const handleSaveMonthlyIncome = (income: number) => {
+    setMonthlyIncome(income);
+  };
+
   // Calculate total expenses for the current month/year for the IncomeTracker
   const totalExpenses = useMemo(() => {
     const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
@@ -90,6 +108,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8">
+      <Sidebar
+        categories={categories}
+        onAddCategory={handleAddCategory}
+        onDeleteCategory={handleDeleteCategory}
+        monthlyIncome={monthlyIncome}
+        onSaveMonthlyIncome={handleSaveMonthlyIncome}
+      />
       <div className="max-w-6xl mx-auto space-y-8">
         <h1 className="text-5xl font-extrabold text-center mb-10">
           Išlaidų Sekiklis
@@ -97,14 +122,8 @@ const Index = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <ExpenseForm onAddExpense={handleAddExpense} categories={categories} />
-          <IncomeTracker totalExpenses={totalExpenses} />
+          <IncomeTracker monthlyIncome={monthlyIncome} totalExpenses={totalExpenses} />
         </div>
-
-        <CategoryManager
-          categories={categories}
-          onAddCategory={handleAddCategory}
-          onDeleteCategory={handleDeleteCategory}
-        />
 
         <ExpenseChart expenses={expenses} />
         <ExpenseList expenses={expenses} onDeleteExpense={handleDeleteExpense} />
