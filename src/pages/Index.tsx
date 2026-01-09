@@ -154,6 +154,34 @@ const Index = () => {
     ? monthlyIncomes[selectedMonthYear]
     : defaultMonthlyIncome;
 
+  const previousMonthCarryOver = useMemo(() => {
+    let prevMonth = parseInt(selectedMonth) - 1;
+    let prevYear = parseInt(selectedYear);
+
+    if (prevMonth === 0) { // If current month is January, previous month is December of previous year
+      prevMonth = 12;
+      prevYear -= 1;
+    }
+
+    const prevMonthPadded = String(prevMonth).padStart(2, '0');
+    const prevMonthYear = `${prevYear}-${prevMonthPadded}`;
+
+    const expensesForPreviousMonth = expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      const expenseMonth = String(expenseDate.getMonth() + 1).padStart(2, '0');
+      const expenseYear = String(expenseDate.getFullYear());
+      return expenseMonth === prevMonthPadded && expenseYear === String(prevYear);
+    });
+
+    const totalExpensesForPreviousMonth = expensesForPreviousMonth.reduce((sum, expense) => sum + expense.amount, 0);
+    const previousMonthIncome = monthlyIncomes[prevMonthYear] !== undefined
+      ? monthlyIncomes[prevMonthYear]
+      : defaultMonthlyIncome;
+
+    return previousMonthIncome - totalExpensesForPreviousMonth;
+  }, [expenses, monthlyIncomes, defaultMonthlyIncome, selectedMonth, selectedYear]);
+
+
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8">
       <Sidebar
@@ -164,10 +192,10 @@ const Index = () => {
         defaultMonthlyIncome={defaultMonthlyIncome}
         onSaveIncome={handleSaveIncome}
         selectedMonth={selectedMonth}
-        setSelectedMonth={setSelectedMonth} // Perduodame setSelectedMonth
+        setSelectedMonth={setSelectedMonth}
         selectedYear={selectedYear}
-        setSelectedYear={setSelectedYear} // Perduodame setSelectedYear
-        availableYears={availableYears} // Perduodame availableYears
+        setSelectedYear={setSelectedYear}
+        availableYears={availableYears}
       />
       <div className="max-w-6xl mx-auto space-y-8">
         <h1 className="text-5xl font-extrabold text-center mb-10">
@@ -209,7 +237,11 @@ const Index = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <ExpenseForm onAddExpense={handleAddExpense} categories={categories} />
-          <IncomeTracker monthlyIncome={currentMonthIncome} totalExpenses={totalExpensesForSelectedMonth} />
+          <IncomeTracker
+            monthlyIncome={currentMonthIncome}
+            totalExpenses={totalExpensesForSelectedMonth}
+            previousMonthCarryOver={previousMonthCarryOver} // Perduodame naują prop
+          />
         </div>
 
         <ExpenseChart expenses={filteredExpenses} selectedMonth={selectedMonth} selectedYear={selectedYear} />
