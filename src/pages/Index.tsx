@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { MadeWithDyad } from "@/components/made-with-dyad";
 import ExpenseForm from "@/components/ExpenseForm";
 import ExpenseList from "@/components/ExpenseList";
 import ExpenseChart from "@/components/ExpenseChart";
@@ -189,7 +188,6 @@ const Index = () => {
         <ExpenseChart expenses={filteredExpenses} selectedMonth={selectedMonth} selectedYear={selectedYear} />
         <ExpenseList expenses={filteredExpenses} onDeleteExpense={handleDeleteExpense} />
       </div>
-      <MadeWithDyad />
     </div>
   );
 };
