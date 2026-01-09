@@ -244,11 +244,11 @@ const Index = () => {
       />
       
       <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 pt-16">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-center mb-6 sm:mb-8 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500 drop-shadow-lg px-4">
+        <h1 className="text-2xl xs:text-3xl sm:text-4xl font-extrabold text-center mb-4 sm:mb-6 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500 drop-shadow-sm px-2">
           Išlaidų Skaičiuoklė
         </h1>
         
-        <div className="mb-6 flex justify-center">
+        <div className="mb-4 sm:mb-6 flex justify-center">
           <MonthYearNavigator 
             selectedMonth={selectedMonth} 
             setSelectedMonth={setSelectedMonth} 
@@ -257,7 +257,7 @@ const Index = () => {
           />
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <ExpenseForm onAddExpense={handleAddExpense} categories={categories} />
           <IncomeTracker 
             monthlyIncome={currentMonthIncome} 
@@ -266,7 +266,7 @@ const Index = () => {
           />
         </div>
         
-        <div className="space-y-6 sm:space-y-8">
+        <div className="space-y-4 sm:space-y-6">
           <ExpenseChart 
             expenses={filteredExpenses} 
             selectedMonth={selectedMonth} 
