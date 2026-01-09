@@ -81,7 +81,7 @@ const BudgetOverviewChart: React.FC<BudgetOverviewChartProps> = ({ monthlyIncome
                 margin={{
                   top: 20,
                   right: 30,
-                  left: 20,
+                  left: 60, // Padidinta kairioji paraštė
                   bottom: 5,
                 }}
               >
