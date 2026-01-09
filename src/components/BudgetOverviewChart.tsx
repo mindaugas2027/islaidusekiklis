@@ -50,7 +50,7 @@ const BudgetOverviewChart: React.FC<BudgetOverviewChartProps> = ({ monthlyIncome
       },
     ];
     chartBars = [
-      <Bar key="panaudota" dataKey="panaudota" stackId="a" fill="hsl(var(--primary))" name="Panaudota" />,
+      <Bar key="panaudota" dataKey="panaudota" stackId="a" fill="hsl(var(--destructive))" name="Panaudota" />,
       <Bar key="liko" dataKey="liko" stackId="a" fill="hsl(142.1 76.2% 36.3%)" name="Liko" />,
     ];
   }
@@ -87,7 +87,7 @@ const BudgetOverviewChart: React.FC<BudgetOverviewChartProps> = ({ monthlyIncome
               >
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--muted))" />
                 <XAxis type="number" stroke="hsl(var(--foreground))" />
-                <YAxis dataKey="name" type="category" hide={true} /> {/* YAxis paslėptas, bet išlaikytas dėl duomenų struktūros */}
+                <YAxis dataKey="name" type="category" hide={true} />
                 <Tooltip
                   formatter={(value: number) => `${value.toFixed(2)} €`}
                   contentStyle={{
