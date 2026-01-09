@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePicker } from "@/components/DatePicker";
 
 interface MonthlyBudgetSettingsProps {
   monthlyIncomes: { [key: string]: number };
@@ -38,6 +39,7 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
   const [editingYear, setEditingYear] = useState<string>(currentYear);
   const [inputMonthIncome, setInputMonthIncome] = useState<string>("");
   const [inputDefaultIncome, setInputDefaultIncome] = useState<string>(defaultMonthlyIncome.toFixed(2));
+  const [defaultIncomeStartDate, setDefaultIncomeStartDate] = useState<Date | undefined>(new Date());
 
   const editingMonthYear = `${editingYear}-${editingMonth}`;
   const currentMonthSpecificIncome = monthlyIncomes[editingMonthYear];
@@ -73,14 +75,14 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
       toast.success(`Mėnesio ${editingMonthYear} pajamos pašalintos. Bus naudojamos numatytosios pajamos.`);
       return;
     }
-    
+
     // Allow 0 as a valid value
     const parsedIncome = parseFloat(inputMonthIncome);
     if (isNaN(parsedIncome) || parsedIncome < 0) {
       toast.error("Prašome įvesti teigiamą pajamų sumą pasirinktam mėnesiui.");
       return;
     }
-    
+
     onSaveIncome(parsedIncome, 'month', editingMonthYear);
   };
 
@@ -91,8 +93,51 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
       toast.error("Prašome įvesti teigiamą numatytąją pajamų sumą.");
       return;
     }
-    
+
     onSaveIncome(parsedIncome, 'default');
+  };
+
+  const handleSaveDefaultIncomeWithDate = () => {
+    if (!defaultIncomeStartDate) {
+      toast.error("Prašome pasirinkti pradžios datą.");
+      return;
+    }
+
+    const parsedIncome = parseFloat(inputDefaultIncome);
+    if (isNaN(parsedIncome) || parsedIncome < 0) {
+      toast.error("Prašome įvesti teigiamą numatytąją pajamų sumą.");
+      return;
+    }
+
+    // Calculate which months should use this new default income
+    const startYear = defaultIncomeStartDate.getFullYear();
+    const startMonth = String(defaultIncomeStartDate.getMonth() + 1).padStart(2, '0');
+
+    // Set the new default income
+    onSaveIncome(parsedIncome, 'default');
+
+    // Clear specific month incomes from the start date onward
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+
+    // Clear months from start date to current date
+    for (let year = startYear; year <= currentYear; year++) {
+      const startM = year === startYear ? parseInt(startMonth) : 1;
+      const endM = year === currentYear ? parseInt(currentMonth) : 12;
+
+      for (let month = startM; month <= endM; month++) {
+        const monthStr = String(month).padStart(2, '0');
+        const monthYear = `${year}-${monthStr}`;
+
+        // Only clear if this month has a specific income set
+        if (monthlyIncomes[monthYear] !== undefined) {
+          onSaveIncome(0, 'month', monthYear);
+        }
+      }
+    }
+
+    toast.success(`Numatytosios pajamos (${parsedIncome.toFixed(2)} €) nustatytos nuo ${defaultIncomeStartDate.toLocaleDateString()} ir bus taikomos visiems mėnesiams nuo šios datos.`);
   };
 
   return (
@@ -138,13 +183,13 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
             Pajamos pasirinktam mėnesiui ({editingMonthYear})
           </Label>
           <div className="flex flex-col sm:flex-row gap-2 mt-1">
-            <Input 
-              id="month-income-input" 
-              type="number" 
-              value={inputMonthIncome} 
-              onChange={(e) => setInputMonthIncome(e.target.value)} 
-              placeholder="0.00" 
-              step="0.01" 
+            <Input
+              id="month-income-input"
+              type="number"
+              value={inputMonthIncome}
+              onChange={(e) => setInputMonthIncome(e.target.value)}
+              placeholder="0.00"
+              step="0.01"
               className="flex-grow"
             />
             <Button onClick={handleSaveMonthIncome} className="w-full sm:w-auto">
@@ -167,13 +212,13 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
             Numatytosios mėnesio pajamos (visada)
           </Label>
           <div className="flex flex-col sm:flex-row gap-2 mt-1">
-            <Input 
-              id="default-income-input" 
-              type="number" 
-              value={inputDefaultIncome} 
-              onChange={(e) => setInputDefaultIncome(e.target.value)} 
-              placeholder="0.00" 
-              step="0.01" 
+            <Input
+              id="default-income-input"
+              type="number"
+              value={inputDefaultIncome}
+              onChange={(e) => setInputDefaultIncome(e.target.value)}
+              placeholder="0.00"
+              step="0.01"
               className="flex-grow"
             />
             <Button onClick={handleSaveDefaultIncome} className="w-full sm:w-auto">
@@ -183,6 +228,28 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
           <p className="text-sm text-muted-foreground mt-1">
             Ši suma bus naudojama mėnesiams, kuriems nenustatytos individualios pajamos.
           </p>
+        </div>
+        <div className="border-t pt-4">
+          <Label className="text-lg font-semibold">
+            Nustatyti numatytąsias pajamas nuo datos
+          </Label>
+          <div className="space-y-2 mt-1">
+            <DatePicker
+              date={defaultIncomeStartDate}
+              setDate={setDefaultIncomeStartDate}
+              placeholder="Pasirinkite pradžios datą"
+            />
+            <Button
+              onClick={handleSaveDefaultIncomeWithDate}
+              className="w-full"
+              variant="secondary"
+            >
+              Nustatyti numatytąsias pajamas nuo šios datos
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              Ši funkcija nustatys numatytąsias pajamas ir ištrins individualias pajamas nuo pasirinktos datos iki šiol.
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>
