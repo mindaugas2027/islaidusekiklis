@@ -75,6 +75,8 @@ export const useExpenses = () => {
       return null;
     }
     
+    // The real-time subscription will automatically update the state
+    // We don't need to manually add it to the state
     toast.success("Išlaida sėkmingai pridėta!");
     return data as Expense;
   };
@@ -91,6 +93,8 @@ export const useExpenses = () => {
       return false;
     }
     
+    // The real-time subscription will automatically update the state
+    // We don't need to manually remove it from the state
     toast.success("Išlaida sėkmingai ištrinta.");
     return true;
   };

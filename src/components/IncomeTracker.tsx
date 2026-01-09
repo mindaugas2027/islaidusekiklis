@@ -7,11 +7,7 @@ interface IncomeTrackerProps {
   previousMonthCarryOver: number;
 }
 
-const IncomeTracker: React.FC<IncomeTrackerProps> = ({
-  monthlyIncome,
-  totalExpenses,
-  previousMonthCarryOver
-}) => {
+const IncomeTracker: React.FC<IncomeTrackerProps> = ({ monthlyIncome, totalExpenses, previousMonthCarryOver }) => {
   // IncomeTracker dabar tiesiog atvaizduos BudgetOverviewChart
   return (
     <BudgetOverviewChart 

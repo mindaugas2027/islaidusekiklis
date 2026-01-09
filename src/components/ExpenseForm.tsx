@@ -59,10 +59,10 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
     
     try {
       await onAddExpense(newExpense);
+      // Reset form immediately for better UX
       setAmount("");
       setDescription("");
-      setDate(new Date()); // Nustatome dabartinę datą po pridėjimo
-      toast.success("Išlaida sėkmingai pridėta!");
+      setDate(new Date());
     } catch (error) {
       toast.error("Nepavyko pridėti išlaidos");
     } finally {
@@ -95,7 +95,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
             <Select 
               value={category} 
               onValueChange={(value: string) => setCategory(value)}
-              disabled={categories.length === 0 || isSubmitting} // Disable select if no categories
+              disabled={categories.length === 0 || isSubmitting}
             >
               <SelectTrigger id="category">
                 <SelectValue placeholder={categories.length === 0 ? "Nėra kategorijų" : "Pasirinkite kategoriją"} />

@@ -18,7 +18,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDeleteExpense }) 
     setDeletingId(id);
     try {
       await onDeleteExpense(id);
-      toast.success("Išlaida sėkmingai ištrinta.");
+      // Success message is handled in the hook
     } catch (error) {
       toast.error("Nepavyko ištrinti išlaidos");
     } finally {
@@ -50,7 +50,10 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDeleteExpense }) 
                 {expenses
                   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                   .map((expense) => (
-                    <TableRow key={expense.id}>
+                    <TableRow 
+                      key={expense.id} 
+                      className={deletingId === expense.id ? "opacity-50" : ""}
+                    >
                       <TableCell>{expense.date}</TableCell>
                       <TableCell>{expense.description}</TableCell>
                       <TableCell>{expense.category}</TableCell>
