@@ -15,7 +15,7 @@ interface MonthlyBudgetSettingsProps {
 
 interface DateBasedIncome {
   id: string;
-  startMonthYear: string;
+  startMonthYear: string; // Changed from startDate to startMonthYear
   income: number;
 }
 
@@ -44,6 +44,7 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
   const [editingMonth, setEditingMonth] = useState<string>(currentMonth);
   const [editingYear, setEditingYear] = useState<string>(currentYear);
   const [inputMonthIncome, setInputMonthIncome] = useState<string>("");
+  const [inputDefaultIncome, setInputDefaultIncome] = useState<string>(defaultMonthlyIncome.toFixed(2));
   const [dateBasedIncomes, setDateBasedIncomes] = useState<DateBasedIncome[]>([]);
   const [newIncomeMonth, setNewIncomeMonth] = useState<string>(currentMonth);
   const [newIncomeYear, setNewIncomeYear] = useState<string>(currentYear);
@@ -70,6 +71,10 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
     }
   }, [currentMonthSpecificIncome, editingMonth, editingYear]);
 
+  useEffect(() => {
+    setInputDefaultIncome(defaultMonthlyIncome.toFixed(2));
+  }, [defaultMonthlyIncome]);
+
   const handleSaveMonthIncome = () => {
     if (inputMonthIncome === "") {
       onSaveIncome(0, 'month', editingMonthYear);
@@ -84,6 +89,16 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
     }
 
     onSaveIncome(parsedIncome, 'month', editingMonthYear);
+  };
+
+  const handleSaveDefaultIncome = () => {
+    const parsedIncome = parseFloat(inputDefaultIncome);
+    if (isNaN(parsedIncome) || parsedIncome < 0) {
+      toast.error("Prašome įvesti teigiamą numatytąją pajamų sumą.");
+      return;
+    }
+
+    onSaveIncome(parsedIncome, 'default');
   };
 
   const handleAddDateBasedIncome = () => {
@@ -190,6 +205,28 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
               Šiam mėnesiui nustatytos numatytosios pajamos: {defaultMonthlyIncome.toFixed(2)} €
             </p>
           )}
+        </div>
+        <div className="border-t pt-4">
+          <Label htmlFor="default-income-input" className="text-lg font-semibold">
+            Numatytosios mėnesio pajamos (visada)
+          </Label>
+          <div className="flex flex-col sm:flex-row gap-2 mt-1">
+            <Input
+              id="default-income-input"
+              type="number"
+              value={inputDefaultIncome}
+              onChange={(e) => setInputDefaultIncome(e.target.value)}
+              placeholder="0.00"
+              step="0.01"
+              className="flex-grow"
+            />
+            <Button onClick={handleSaveDefaultIncome} className="w-full sm:w-auto">
+              Išsaugoti
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Ši suma bus naudojama mėnesiams, kuriems nenustatytos individualios pajamos.
+          </p>
         </div>
         <div className="border-t pt-4">
           <Label className="text-lg font-semibold">
