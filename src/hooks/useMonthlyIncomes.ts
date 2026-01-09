@@ -70,7 +70,7 @@ export const useMonthlyIncomes = () => {
     const { data, error } = await supabase
       .from('monthly_incomes')
       .select('month_year, income');
-
+    
     if (error) {
       toast.error("Nepavyko įkelti pajamų");
       console.error(error);
@@ -86,7 +86,7 @@ export const useMonthlyIncomes = () => {
           acc[item.month_year] = item.income;
           return acc;
         }, {} as { [key: string]: number });
-        
+      
       setMonthlyIncomes(monthIncomes);
     }
     setLoading(false);
@@ -100,15 +100,42 @@ export const useMonthlyIncomes = () => {
       return false;
     }
 
-    const { data, error } = await supabase
+    // First try to update existing record
+    const { data: updateData, error: updateError } = await supabase
       .from('monthly_incomes')
-      .upsert({ month_year, income }, { onConflict: 'user_id,month_year' })
+      .update({ income })
+      .eq('month_year', month_year)
       .select()
       .single();
 
-    if (error) {
+    if (updateData) {
+      // Successfully updated
+      if (type === 'default') {
+        setDefaultMonthlyIncome(income);
+        toast.success("Numatytosios mėnesio pajamos atnaujintos!");
+      } else if (monthYear) {
+        setMonthlyIncomes((prev) => ({
+          ...prev,
+          [monthYear]: income
+        }));
+        toast.success(`Mėnesio ${monthYear} pajamos atnaujintos!`);
+      }
+      return true;
+    }
+
+    // If update failed because record doesn't exist, insert new record
+    const { data: insertData, error: insertError } = await supabase
+      .from('monthly_incomes')
+      .insert([{ 
+        month_year,
+        income
+      }])
+      .select()
+      .single();
+
+    if (insertError) {
       toast.error("Nepavyko išsaugoti pajamų");
-      console.error(error);
+      console.error(insertError);
       return false;
     }
 
@@ -126,5 +153,11 @@ export const useMonthlyIncomes = () => {
     return true;
   };
 
-  return { monthlyIncomes, defaultMonthlyIncome, loading, saveIncome, fetchMonthlyIncomes };
+  return {
+    monthlyIncomes,
+    defaultMonthlyIncome,
+    loading,
+    saveIncome,
+    fetchMonthlyIncomes
+  };
 };
