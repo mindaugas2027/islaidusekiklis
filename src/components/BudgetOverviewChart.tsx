@@ -10,10 +10,10 @@ interface BudgetOverviewChartProps {
 const BudgetOverviewChart: React.FC<BudgetOverviewChartProps> = ({ monthlyIncome, totalExpenses }) => {
   const remainingBudget = monthlyIncome - totalExpenses;
   const isOverBudget = remainingBudget < 0;
-  
+
   let chartData: any[] = [];
   let chartBars: JSX.Element[] = [];
-  
+
   if (monthlyIncome <= 0) {
     // No chart if no income
     chartData = [];
@@ -27,7 +27,6 @@ const BudgetOverviewChart: React.FC<BudgetOverviewChartProps> = ({ monthlyIncome
         deficitas: Math.abs(remainingBudget),
       }
     ];
-    
     chartBars = [
       <Bar key="pajamos" dataKey="pajamos" fill="hsl(var(--primary))" name="Pajamos" />,
       <Bar key="išlaidos" dataKey="išlaidos" fill="hsl(var(--destructive))" name="Išlaidos" />,
@@ -41,15 +40,17 @@ const BudgetOverviewChart: React.FC<BudgetOverviewChartProps> = ({ monthlyIncome
         liko: remainingBudget,
       }
     ];
-    
     chartBars = [
       <Bar key="panaudota" dataKey="panaudota" stackId="a" fill="hsl(var(--destructive))" name="Panaudota" />,
       <Bar key="liko" dataKey="liko" stackId="a" fill="hsl(142.1 76.2% 36.3%)" name="Liko" />,
     ];
   }
-  
+
   const usedPercentage = monthlyIncome > 0 ? (totalExpenses / monthlyIncome) * 100 : 0;
   const remainingPercentage = monthlyIncome > 0 ? (remainingBudget / monthlyIncome) * 100 : 0;
+
+  // Calculate the maximum value for the Y-axis to show up to income value
+  const maxYAxisValue = monthlyIncome > 0 ? monthlyIncome : Math.max(totalExpenses, Math.abs(remainingBudget));
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -68,9 +69,9 @@ const BudgetOverviewChart: React.FC<BudgetOverviewChartProps> = ({ monthlyIncome
               Viso išleista: <span className="text-destructive">{totalExpenses.toFixed(2)} €</span>
             </p>
             <p className={`font-bold ${isOverBudget ? "text-destructive" : "text-green-600"}`}>
-              {isOverBudget ? "Viršytas biudžetas:" : "Liko biudžeto:"} {remainingBudget.toFixed(2)} €
+              {isOverBudget ? "Viršytas biudžetas:" : "Liko biudžeto:"}
+              {remainingBudget.toFixed(2)} €
             </p>
-            
             <ResponsiveContainer width="100%" height={150}>
               <BarChart
                 layout="vertical"
@@ -78,13 +79,17 @@ const BudgetOverviewChart: React.FC<BudgetOverviewChartProps> = ({ monthlyIncome
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--muted))" />
-                <XAxis type="number" stroke="hsl(var(--foreground))" />
+                <XAxis 
+                  type="number" 
+                  stroke="hsl(var(--foreground))" 
+                  domain={[0, maxYAxisValue]} // Set max value to income
+                />
                 <YAxis dataKey="name" type="category" hide={true} />
-                <Tooltip
+                <Tooltip 
                   formatter={(value: number) => `${value.toFixed(2)} €`}
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    borderColor: "hsl(var(--border))",
+                  contentStyle={{ 
+                    backgroundColor: "hsl(var(--card))", 
+                    borderColor: "hsl(var(--border))", 
                     borderRadius: "0.5rem",
                   }}
                   itemStyle={{ color: "hsl(var(--foreground))" }}
@@ -93,7 +98,6 @@ const BudgetOverviewChart: React.FC<BudgetOverviewChartProps> = ({ monthlyIncome
                 {chartBars}
               </BarChart>
             </ResponsiveContainer>
-            
             <div className="mt-4 text-sm text-gray-600">
               <p>Panaudota: {usedPercentage.toFixed(2)}%</p>
               {monthlyIncome > 0 && !isOverBudget && (
