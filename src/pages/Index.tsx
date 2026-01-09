@@ -54,7 +54,7 @@ const Index = () => {
         addCategory(cat);
       });
     }
-  }, [categoriesLoading, categories]);
+  }, [categoriesLoading, categories, addCategory]);
 
   // Logic to automatically add recurring expenses for the selected month/year based on current date
   useEffect(() => {

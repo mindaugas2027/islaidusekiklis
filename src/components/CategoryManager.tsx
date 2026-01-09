@@ -16,7 +16,6 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
   const [newCategoryName, setNewCategoryName] = useState<string>("");
   const [isAdding, setIsAdding] = useState(false);
   const [deletingCategories, setDeletingCategories] = useState<Set<string>>(new Set());
-  const [optimisticCategories, setOptimisticCategories] = useState<string[]>([]);
 
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,27 +26,19 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
       return;
     }
     
-    // Check if category already exists in current list or optimistic list
-    if (categories.includes(trimmedName) || optimisticCategories.includes(trimmedName)) {
+    // Check if category already exists
+    if (categories.includes(trimmedName)) {
       toast.error("Tokia kategorija jau egzistuoja.");
       return;
     }
     
     setIsAdding(true);
     
-    // Immediately add to optimistic list for instant UI feedback
-    setOptimisticCategories(prev => [...prev, trimmedName]);
-    setNewCategoryName("");
-    
     try {
       await onAddCategory(trimmedName);
-      // Success message is handled in the hook
-      // Remove from optimistic list after successful addition
-      setOptimisticCategories(prev => prev.filter(cat => cat !== trimmedName));
+      setNewCategoryName("");
     } catch (error) {
       toast.error("Nepavyko pridėti kategorijos");
-      // Remove from optimistic list if failed
-      setOptimisticCategories(prev => prev.filter(cat => cat !== trimmedName));
     } finally {
       setIsAdding(false);
     }
@@ -59,7 +50,6 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
     
     try {
       await onDeleteCategory(category);
-      // Success message is handled in the hook
     } catch (error) {
       toast.error("Nepavyko ištrinti kategorijos");
       // Remove from deleting set if failed
@@ -71,11 +61,9 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
     }
   };
 
-  // Combine real categories with optimistic ones and filter out deleting ones
-  const visibleCategories = [...categories, ...optimisticCategories]
+  // Combine real categories and filter out deleting ones
+  const visibleCategories = categories
     .filter(category => !deletingCategories.has(category))
-    // Remove duplicates
-    .filter((category, index, self) => self.indexOf(category) === index)
     .sort();
 
   return (
