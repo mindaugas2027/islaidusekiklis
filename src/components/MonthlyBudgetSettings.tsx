@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DatePicker } from "@/components/DatePicker";
 import { X } from "lucide-react";
 
 interface MonthlyBudgetSettingsProps {
@@ -16,7 +15,7 @@ interface MonthlyBudgetSettingsProps {
 
 interface DateBasedIncome {
   id: string;
-  startDate: Date;
+  startMonthYear: string; // Changed from startDate to startMonthYear
   income: number;
 }
 
@@ -47,7 +46,8 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
   const [inputMonthIncome, setInputMonthIncome] = useState<string>("");
   const [inputDefaultIncome, setInputDefaultIncome] = useState<string>(defaultMonthlyIncome.toFixed(2));
   const [dateBasedIncomes, setDateBasedIncomes] = useState<DateBasedIncome[]>([]);
-  const [newIncomeDate, setNewIncomeDate] = useState<Date | undefined>(new Date());
+  const [newIncomeMonth, setNewIncomeMonth] = useState<string>(currentMonth);
+  const [newIncomeYear, setNewIncomeYear] = useState<string>(currentYear);
   const [newIncomeAmount, setNewIncomeAmount] = useState<string>("");
 
   const editingMonthYear = `${editingYear}-${editingMonth}`;
@@ -102,10 +102,7 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
   };
 
   const handleAddDateBasedIncome = () => {
-    if (!newIncomeDate) {
-      toast.error("Prašome pasirinkti pradžios datą.");
-      return;
-    }
+    const newIncomeMonthYear = `${newIncomeYear}-${newIncomeMonth}`;
 
     const parsedIncome = parseFloat(newIncomeAmount);
     if (isNaN(parsedIncome) || parsedIncome < 0) {
@@ -115,13 +112,17 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
 
     const newIncome: DateBasedIncome = {
       id: `date-income-${Date.now()}`,
-      startDate: newIncomeDate,
+      startMonthYear: newIncomeMonthYear,
       income: parsedIncome,
     };
 
-    setDateBasedIncomes(prev => [...prev, newIncome].sort((a, b) => b.startDate.getTime() - a.startDate.getTime()));
+    setDateBasedIncomes(prev => [...prev, newIncome].sort((a, b) => {
+      // Sort by date (newest first)
+      return b.startMonthYear.localeCompare(a.startMonthYear);
+    }));
+
     setNewIncomeAmount("");
-    toast.success(`Naujos pajamos (${parsedIncome.toFixed(2)} €) pridėtos nuo ${newIncomeDate.toLocaleDateString()}.`);
+    toast.success(`Naujos pajamos (${parsedIncome.toFixed(2)} €) pridėtos nuo ${newIncomeMonthYear}.`);
   };
 
   const handleDeleteDateBasedIncome = (id: string) => {
@@ -129,11 +130,11 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
     toast.success("Pajamų nustatymas sėkmingai ištrintas.");
   };
 
-  const getCurrentIncomeForDate = (date: Date): number => {
-    // Find the most recent date-based income that is on or before the given date
+  const getCurrentIncomeForMonthYear = (monthYear: string): number => {
+    // Find the most recent date-based income that is on or before the given month/year
     const applicableIncome = dateBasedIncomes
-      .filter(income => income.startDate <= date)
-      .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())[0];
+      .filter(income => income.startMonthYear <= monthYear)
+      .sort((a, b) => b.startMonthYear.localeCompare(a.startMonthYear))[0];
 
     return applicableIncome ? applicableIncome.income : defaultMonthlyIncome;
   };
@@ -229,14 +230,41 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
         </div>
         <div className="border-t pt-4">
           <Label className="text-lg font-semibold">
-            Nustatyti pajamas nuo datos
+            Nustatyti pajamas nuo mėnesio
           </Label>
           <div className="space-y-2 mt-1">
-            <DatePicker
-              date={newIncomeDate}
-              setDate={setNewIncomeDate}
-              placeholder="Pasirinkite pradžios datą"
-            />
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+              <div className="flex-1">
+                <Label htmlFor="new-income-month">Mėnuo</Label>
+                <Select value={newIncomeMonth} onValueChange={setNewIncomeMonth}>
+                  <SelectTrigger id="new-income-month">
+                    <SelectValue placeholder="Pasirinkite mėnesį" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((month) => (
+                      <SelectItem key={month.value} value={month.value}>
+                        {month.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="new-income-year">Metai</Label>
+                <Select value={newIncomeYear} onValueChange={setNewIncomeYear}>
+                  <SelectTrigger id="new-income-year">
+                    <SelectValue placeholder="Pasirinkite metus" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableYearsForSettings.map((year) => (
+                      <SelectItem key={year} value={year}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <Input
               type="number"
               value={newIncomeAmount}
@@ -253,7 +281,7 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
               Pridėti pajamų nustatymą
             </Button>
             <p className="text-sm text-muted-foreground">
-              Ši funkcija leidžia nustatyti pajamas, kurios bus taikomos nuo pasirinktos datos.
+              Ši funkcija leidžia nustatyti pajamas, kurios bus taikomos nuo pasirinkto mėnesio.
             </p>
           </div>
         </div>
@@ -263,23 +291,27 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
               Esami pajamų nustatymai
             </Label>
             <div className="space-y-2 mt-2">
-              {dateBasedIncomes.map((income) => (
-                <div key={income.id} className="flex items-center justify-between p-2 border rounded-md bg-secondary">
-                  <div>
-                    <p className="font-medium">
-                      {income.income.toFixed(2)} € nuo {income.startDate.toLocaleDateString()}
-                    </p>
+              {dateBasedIncomes.map((income) => {
+                const monthLabel = months.find(m => m.value === income.startMonthYear.split('-')[1])?.label;
+                const year = income.startMonthYear.split('-')[0];
+                return (
+                  <div key={income.id} className="flex items-center justify-between p-2 border rounded-md bg-secondary">
+                    <div>
+                      <p className="font-medium">
+                        {income.income.toFixed(2)} € nuo {monthLabel} {year}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteDateBasedIncome(income.id)}
+                      className="h-auto p-1"
+                    >
+                      <X className="h-4 w-4 text-destructive" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteDateBasedIncome(income.id)}
-                    className="h-auto p-1"
-                  >
-                    <X className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
