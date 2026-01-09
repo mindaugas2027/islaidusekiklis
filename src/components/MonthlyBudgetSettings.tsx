@@ -66,8 +66,16 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
   }, [defaultMonthlyIncome]);
 
   const handleSaveMonthIncome = () => {
+    // Handle empty input as a request to remove specific month income
+    if (inputMonthIncome === "") {
+      // Remove specific month income by saving null/undefined
+      onSaveIncome(0, 'month', editingMonthYear);
+      toast.success(`Mėnesio ${editingMonthYear} pajamos pašalintos. Bus naudojamos numatytosios pajamos.`);
+      return;
+    }
+    
     // Allow 0 as a valid value
-    const parsedIncome = inputMonthIncome === "" ? NaN : parseFloat(inputMonthIncome);
+    const parsedIncome = parseFloat(inputMonthIncome);
     
     if (isNaN(parsedIncome) || parsedIncome < 0) {
       toast.error("Prašome įvesti teigiamą pajamų sumą pasirinktam mėnesiui.");
@@ -141,6 +149,11 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
             />
             <Button onClick={handleSaveMonthIncome}>Išsaugoti</Button>
           </div>
+          {currentMonthSpecificIncome !== undefined && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Šiuo metu nustatytos {currentMonthSpecificIncome.toFixed(2)} € pajamos. Palikite tuščią lauką ir išsaugokite, jei norite naudoti numatytąsias pajamas.
+            </p>
+          )}
           {currentMonthSpecificIncome === undefined && (
             <p className="text-sm text-muted-foreground mt-1">
               Šiam mėnesiui nustatytos numatytosios pajamos: {defaultMonthlyIncome.toFixed(2)} €

@@ -61,7 +61,7 @@ export const useMonthlyIncomes = () => {
         }
       )
       .subscribe();
-
+    
     return () => {
       supabase.removeChannel(channel);
     };
@@ -75,6 +75,25 @@ export const useMonthlyIncomes = () => {
       return false;
     }
     
+    // Handle removal of specific month income (when income is 0 and it's a month type)
+    if (type === 'month' && income === 0) {
+      // First try to delete existing record
+      const { error: deleteError } = await supabase
+        .from('monthly_incomes')
+        .delete()
+        .eq('month_year', month_year);
+      
+      if (deleteError) {
+        toast.error("Nepavyko pašalinti mėnesio pajamų");
+        console.error(deleteError);
+        return false;
+      }
+      
+      refreshMonthlyIncomes();
+      toast.success(`Mėnesio ${monthYear} pajamos pašalintos. Bus naudojamos numatytosios pajamos.`);
+      return true;
+    }
+    
     // First try to update existing record
     const { data: updateData, error: updateError } = await supabase
       .from('monthly_incomes')
@@ -86,13 +105,11 @@ export const useMonthlyIncomes = () => {
     if (updateData) {
       // Successfully updated
       refreshMonthlyIncomes();
-      
       if (type === 'default') {
         toast.success("Numatytosios mėnesio pajamos atnaujintos!");
       } else if (monthYear) {
         toast.success(`Mėnesio ${monthYear} pajamos atnaujintos!`);
       }
-      
       return true;
     }
     
@@ -110,13 +127,11 @@ export const useMonthlyIncomes = () => {
     }
     
     refreshMonthlyIncomes();
-    
     if (type === 'default') {
       toast.success("Numatytosios mėnesio pajamos atnaujintos!");
     } else if (monthYear) {
       toast.success(`Mėnesio ${monthYear} pajamos atnaujintos!`);
     }
-    
     return true;
   };
 
