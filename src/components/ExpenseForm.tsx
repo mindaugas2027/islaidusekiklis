@@ -31,8 +31,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     const parsedAmount = parseFloat(amount);
+    
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       toast.error("Prašome įvesti teigiamą sumą.");
       return;
@@ -49,7 +49,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
     }
     
     setIsSubmitting(true);
-    
     const newExpense: Omit<Expense, 'id'> = {
       amount: parsedAmount,
       category,
@@ -79,14 +78,14 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="amount">Suma (€)</Label>
-            <Input
-              id="amount"
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              step="0.01"
-              required
+            <Input 
+              id="amount" 
+              type="number" 
+              value={amount} 
+              onChange={(e) => setAmount(e.target.value)} 
+              placeholder="0.00" 
+              step="0.01" 
+              required 
             />
           </div>
           
@@ -112,13 +111,13 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
           
           <div>
             <Label htmlFor="description">Aprašymas (neprivaloma)</Label>
-            <Input
-              id="description"
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Pvz., Pirkimas parduotuvėje"
-              disabled={isSubmitting}
+            <Input 
+              id="description" 
+              type="text" 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)} 
+              placeholder="Pvz., Nike batai" 
+              disabled={isSubmitting} 
             />
           </div>
           
@@ -126,16 +125,12 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, categories }) =
             <Label htmlFor="date">Data</Label>
             <DatePicker 
               date={date} 
-              setDate={setDate}
-              placeholder="Pasirinkite datą"
+              setDate={setDate} 
+              placeholder="Pasirinkite datą" 
             />
           </div>
           
-          <Button 
-            type="submit" 
-            className="w-full"
-            disabled={categories.length === 0 || isSubmitting}
-          >
+          <Button type="submit" className="w-full" disabled={categories.length === 0 || isSubmitting}>
             {isSubmitting ? "Pridedama..." : "Pridėti išlaidą"}
           </Button>
         </form>
