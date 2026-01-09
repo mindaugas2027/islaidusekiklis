@@ -13,7 +13,7 @@ export const useExpenses = () => {
       .from('expenses')
       .select('*')
       .order('date', { ascending: false });
-    
+
     if (error) {
       toast.error("Nepavyko įkelti išlaidų");
       console.error(error);
@@ -62,29 +62,34 @@ export const useExpenses = () => {
       .insert([expense])
       .select()
       .single();
-    
+
     if (error) {
       toast.error("Nepavyko pridėti išlaidos");
       console.error(error);
       return null;
     }
-    
+
     toast.success("Išlaida sėkmingai pridėta!");
     return data as Expense;
   };
 
   const deleteExpense = async (id: string) => {
+    // Optimistically update UI
+    setExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== id));
+    
     const { error } = await supabase
       .from('expenses')
       .delete()
       .eq('id', id);
-    
+
     if (error) {
+      // Revert optimistic update on error
+      refreshExpenses();
       toast.error("Nepavyko ištrinti išlaidos");
       console.error(error);
       return false;
     }
-    
+
     toast.success("Išlaida sėkmingai ištrinta.");
     return true;
   };
@@ -96,12 +101,12 @@ export const useExpenses = () => {
         user_id: (await supabase.auth.getUser()).data.user?.id,
         month_year: monthYear
       });
-    
+
     if (error) {
       console.error('Error calculating monthly total:', error);
       return 0;
     }
-    
+
     return data || 0;
   };
 
@@ -113,22 +118,14 @@ export const useExpenses = () => {
         category_name: category,
         month_year: monthYear
       });
-    
+
     if (error) {
       console.error('Error calculating category total:', error);
       return 0;
     }
-    
+
     return data || 0;
   };
 
-  return {
-    expenses,
-    loading,
-    addExpense,
-    deleteExpense,
-    refreshExpenses,
-    getMonthlyTotal,
-    getCategoryTotal
-  };
+  return { expenses, loading, addExpense, deleteExpense, refreshExpenses, getMonthlyTotal, getCategoryTotal };
 };
