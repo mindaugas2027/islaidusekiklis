@@ -23,8 +23,8 @@ export const useExpenses = () => {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'expenses' },
         (payload) => {
-          setExpenses((prev) =>
-            prev.map((expense) =>
+          setExpenses((prev) => 
+            prev.map((expense) => 
               expense.id === payload.new.id ? (payload.new as Expense) : expense
             )
           );
@@ -34,7 +34,9 @@ export const useExpenses = () => {
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'expenses' },
         (payload) => {
-          setExpenses((prev) => prev.filter((expense) => expense.id !== payload.old.id));
+          setExpenses((prev) => 
+            prev.filter((expense) => expense.id !== payload.old.id)
+          );
         }
       )
       .subscribe();
@@ -50,7 +52,7 @@ export const useExpenses = () => {
       .from('expenses')
       .select('*')
       .order('date', { ascending: false });
-
+    
     if (error) {
       toast.error("Nepavyko įkelti išlaidų");
       console.error(error);
@@ -61,19 +63,18 @@ export const useExpenses = () => {
   };
 
   const addExpense = async (expense: Omit<Expense, 'id'>) => {
-    // Remove the manual ID generation since Supabase will handle it automatically
     const { data, error } = await supabase
       .from('expenses')
-      .insert([expense]) // Pass the expense object directly without adding an ID
+      .insert([expense])
       .select()
       .single();
-
+    
     if (error) {
       toast.error("Nepavyko pridėti išlaidos");
       console.error(error);
       return null;
     }
-
+    
     toast.success("Išlaida sėkmingai pridėta!");
     return data as Expense;
   };
@@ -83,16 +84,57 @@ export const useExpenses = () => {
       .from('expenses')
       .delete()
       .eq('id', id);
-
+    
     if (error) {
       toast.error("Nepavyko ištrinti išlaidos");
       console.error(error);
       return false;
     }
-
+    
     toast.success("Išlaida sėkmingai ištrinta.");
     return true;
   };
 
-  return { expenses, loading, addExpense, deleteExpense, fetchExpenses };
+  // New function to get monthly total for a specific month
+  const getMonthlyTotal = async (monthYear: string) => {
+    const { data, error } = await supabase
+      .rpc('calculate_monthly_total', {
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+        month_year: monthYear
+      });
+    
+    if (error) {
+      console.error('Error calculating monthly total:', error);
+      return 0;
+    }
+    
+    return data || 0;
+  };
+
+  // New function to get category total for a specific month
+  const getCategoryTotal = async (category: string, monthYear: string) => {
+    const { data, error } = await supabase
+      .rpc('calculate_category_total', {
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+        category_name: category,
+        month_year: monthYear
+      });
+    
+    if (error) {
+      console.error('Error calculating category total:', error);
+      return 0;
+    }
+    
+    return data || 0;
+  };
+
+  return {
+    expenses,
+    loading,
+    addExpense,
+    deleteExpense,
+    fetchExpenses,
+    getMonthlyTotal,
+    getCategoryTotal
+  };
 };

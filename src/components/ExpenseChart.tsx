@@ -38,13 +38,17 @@ const ExpenseChart: React.FC<ExpenseChartProps> = ({ expenses, selectedMonth, se
       categoryTotals[expense.category] = (categoryTotals[expense.category] || 0) + expense.amount;
     });
     
-    return Object.entries(categoryTotals).map(([category, amount]) => ({
-      name: category,
-      value: parseFloat(amount.toFixed(2)),
-    }));
+    return Object.entries(categoryTotals)
+      .map(([category, amount]) => ({
+        name: category,
+        value: parseFloat(amount.toFixed(2)),
+      }))
+      .sort((a, b) => b.value - a.value); // Sort by value descending
   }, [expenses]); // Depend only on expenses, as they are already filtered
-  
-  const totalExpenses = chartData.reduce((sum, entry) => sum + entry.value, 0);
+
+  const totalExpenses = useMemo(() => {
+    return chartData.reduce((sum, entry) => sum + entry.value, 0);
+  }, [chartData]);
 
   return (
     <Card className="w-full max-w-3xl mx-auto">

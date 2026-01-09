@@ -27,12 +27,17 @@ const MonthlyLineChart: React.FC<MonthlyLineChartProps> = ({ monthlyData, select
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
-              <XAxis dataKey="name" stroke="hsl(var(--foreground))" />
-              <YAxis stroke="hsl(var(--foreground))" />
-              <Tooltip
+              <XAxis 
+                dataKey="name" 
+                stroke="hsl(var(--foreground))" 
+              />
+              <YAxis 
+                stroke="hsl(var(--foreground))" 
+              />
+              <Tooltip 
                 formatter={(value: number) => `${value.toFixed(2)} €`}
                 labelFormatter={(label: string) => `${label} mėnuo`}
-                contentStyle={{
+                contentStyle={{ 
                   backgroundColor: "hsl(var(--card))",
                   borderColor: "hsl(var(--border))",
                   borderRadius: "0.5rem",
