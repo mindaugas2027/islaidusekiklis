@@ -244,8 +244,8 @@ const Index = () => {
       />
       
       <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 pt-16">
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-center mb-6 sm:mb-8 lg:mb-10 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500 drop-shadow-lg">
-          Išlaidų Sekiklis
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-center mb-6 sm:mb-8 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500 drop-shadow-lg px-4">
+          Išlaidų Skaičiuoklė
         </h1>
         
         <div className="mb-6 flex justify-center">
