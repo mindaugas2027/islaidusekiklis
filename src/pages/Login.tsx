@@ -32,7 +32,7 @@ const Login = () => {
         loading_button_label: "Prisijungiama...",
         social_provider_text: "Prisijungti su {{provider}}",
         link_text: "Pamiršote slaptažodį?",
-        confirmation_text: "Neturite paskyros? Registruotis"
+        confirmation_text: "Neturite paskyros? Susikurkite čia"
       },
       sign_up: {
         email_label: "El. pašto adresas",
