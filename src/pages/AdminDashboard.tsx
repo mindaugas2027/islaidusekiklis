@@ -27,8 +27,8 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // First get all user IDs from auth
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      // Get all users from auth
+      const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
       
       if (authError) throw authError;
       
@@ -41,7 +41,7 @@ const AdminDashboard = () => {
       if (profilesError) throw profilesError;
 
       // Combine auth data with profile data
-      const usersWithProfiles = authUsers.users.map(authUser => {
+      const usersWithProfiles = authUsers.map(authUser => {
         const profile = profiles.find(p => p.id === authUser.id) || {
           id: authUser.id,
           first_name: null,
@@ -58,7 +58,7 @@ const AdminDashboard = () => {
       setUsers(usersWithProfiles);
     } catch (error) {
       toast.error("Nepavyko įkelti vartotojų sąrašo");
-      console.error(error);
+      console.error("Error fetching users:", error);
     } finally {
       setLoading(false);
     }
