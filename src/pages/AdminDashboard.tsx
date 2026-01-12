@@ -27,13 +27,18 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
+      console.log("Attempting to fetch users...");
+      
       // Get all users from auth
       const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
       
       if (authError) {
         console.error("Auth error:", authError);
+        toast.error(`Auth klaida: ${authError.message}`);
         throw authError;
       }
+      
+      console.log("Auth users fetched:", authUsers?.length || 0);
       
       // Get profile data for all users
       const { data: profiles, error: profilesError } = await supabase
@@ -42,8 +47,11 @@ const AdminDashboard = () => {
 
       if (profilesError) {
         console.error("Profiles error:", profilesError);
+        toast.error(`Profilio klaida: ${profilesError.message}`);
         throw profilesError;
       }
+
+      console.log("Profiles fetched:", profiles?.length || 0);
 
       // Combine auth data with profile data
       const usersWithProfiles = authUsers.map(authUser => {
@@ -60,10 +68,14 @@ const AdminDashboard = () => {
         };
       });
 
+      console.log("Combined users:", usersWithProfiles.length);
       setUsers(usersWithProfiles);
-    } catch (error) {
-      toast.error("Nepavyko įkelti vartotojų sąrašo");
+      toast.success(`Sėkmingai įkelta ${usersWithProfiles.length} vartotojų`);
+    } catch (error: any) {
       console.error("Error fetching users:", error);
+      toast.error("Nepavyko įkelti vartotojų sąrašo");
+      // Set empty array to show UI even on error
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -79,7 +91,7 @@ const AdminDashboard = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <p>Įkeliama...</p>
-    </div>
+      </div>
     );
   }
 
@@ -97,7 +109,12 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             {users.length === 0 ? (
-              <p className="text-center text-gray-500 py-4">Nerasta vartotojų</p>
+              <div className="text-center py-4">
+                <p className="text-gray-500 mb-4">Nerasta vartotojų</p>
+                <Button onClick={fetchUsers} variant="outline">
+                  Bandyti dar kartą
+                </Button>
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
