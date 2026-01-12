@@ -84,10 +84,10 @@ const Index = () => {
       const currentActualYear = today.getFullYear();
       const currentActualMonth = String(today.getMonth() + 1).padStart(2, '0');
       const currentActualDay = today.getDate();
-      
+
       let maxDayToShow = 0;
-      
-      if (parseInt(selectedYear) < currentActualYear || 
+
+      if (parseInt(selectedYear) < currentActualYear ||
           (parseInt(selectedYear) === currentActualYear && selectedMonth < currentActualMonth)) {
         // Past month/year: all recurring expenses for this month are considered due
         maxDayToShow = 31;
@@ -98,10 +98,10 @@ const Index = () => {
         // Future month/year: no recurring expenses are due yet
         maxDayToShow = 0;
       }
-      
+
       const recurringExpensesForSelectedMonthYear: Expense[] = [];
       const currentMonthYearPrefix = `${selectedYear}-${selectedMonth}`;
-      
+
       recurringExpenses.forEach(recExpense => {
         if (recExpense.day_of_month <= maxDayToShow) {
           // Use correct column name
@@ -111,7 +111,7 @@ const Index = () => {
             new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, actualDay),
             'yyyy-MM-dd'
           );
-          
+
           recurringExpensesForSelectedMonthYear.push({
             id: `RECURRING-${recExpense.id}-${expenseDate}`, // Unique ID for this instance
             amount: recExpense.amount,
@@ -121,10 +121,10 @@ const Index = () => {
           });
         }
       });
-      
+
       // We'll handle recurring expenses display in the UI rather than merging with regular expenses
     };
-    
+
     generateAndMergeExpenses();
   }, [selectedMonth, selectedYear, recurringExpenses]);
 
@@ -145,18 +145,18 @@ const Index = () => {
     const expensesWithCategory = expenses.filter(
       (expense) => expense.category === categoryToDelete
     );
-    
+
     const recurringExpensesWithCategory = recurringExpenses.filter(
       (recExpense) => recExpense.category === categoryToDelete
     );
-    
+
     if (expensesWithCategory.length > 0 || recurringExpensesWithCategory.length > 0) {
       toast.error(
         `Negalima ištrinti kategorijos "${categoryToDelete}", nes ji naudojama išlaidose arba pasikartojančiose išlaidose.`
       );
       return;
     }
-    
+
     await deleteCategory(categoryToDelete);
   };
 
@@ -194,50 +194,50 @@ const Index = () => {
 
   const selectedMonthYear = `${selectedYear}-${selectedMonth}`;
   // Fixed logic: Use default income when monthly income is not set OR when it's 0
-  const currentMonthIncome = monthlyIncomes[selectedMonthYear] !== undefined && monthlyIncomes[selectedMonthYear] !== null 
-    ? monthlyIncomes[selectedMonthYear] 
+  const currentMonthIncome = monthlyIncomes[selectedMonthYear] !== undefined && monthlyIncomes[selectedMonthYear] !== null
+    ? monthlyIncomes[selectedMonthYear]
     : defaultMonthlyIncome;
 
   const previousMonthCarryOver = useMemo(() => {
     let prevMonth = parseInt(selectedMonth) - 1;
     let prevYear = parseInt(selectedYear);
-    
+
     if (prevMonth === 0) {
       prevMonth = 12;
       prevYear -= 1;
     }
-    
+
     const prevMonthPadded = String(prevMonth).padStart(2, '0');
     const prevMonthYear = `${prevYear}-${prevMonthPadded}`;
-    
+
     const expensesForPreviousMonth = expenses.filter(expense => {
       const expenseDate = new Date(expense.date);
       const expenseMonth = String(expenseDate.getMonth() + 1).padStart(2, '0');
       const expenseYear = String(expenseDate.getFullYear());
       return expenseMonth === prevMonthPadded && expenseYear === String(prevYear);
     });
-    
+
     const totalExpensesForPreviousMonth = expensesForPreviousMonth.reduce((sum, expense) => sum + expense.amount, 0);
-    const previousMonthIncome = monthlyIncomes[prevMonthYear] !== undefined && monthlyIncomes[prevMonthYear] !== null 
-      ? monthlyIncomes[prevMonthYear] 
+    const previousMonthIncome = monthlyIncomes[prevMonthYear] !== undefined && monthlyIncomes[prevMonthYear] !== null
+      ? monthlyIncomes[prevMonthYear]
       : defaultMonthlyIncome;
-    
+
     return previousMonthIncome - totalExpensesForPreviousMonth;
   }, [expenses, monthlyIncomes, defaultMonthlyIncome, selectedMonth, selectedYear]);
 
   const monthlyExpenseTotals = useMemo(() => {
     const monthlyTotals: { [key: string]: number } = {};
-    
+
     expenses.forEach(expense => {
       const expenseDate = new Date(expense.date);
       const year = String(expenseDate.getFullYear());
       const month = String(expenseDate.getMonth() + 1).padStart(2, '0');
-      
+
       if (year === selectedYear) {
         monthlyTotals[month] = (monthlyTotals[month] || 0) + expense.amount;
       }
     });
-    
+
     return months.map(m => ({
       name: m.label,
       total: parseFloat((monthlyTotals[m.value] || 0).toFixed(2)),
@@ -254,15 +254,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground p-2 sm:p-4 md:p-6 lg:p-8">
-      {impersonatedUser && (
-        <div className="fixed top-4 right-4 z-50 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded">
-          <p className="font-bold">Peržiūrite kaip: {impersonatedUser.email || impersonatedUser.id}</p>
-        </div>
-      )}
-      
-      <Sidebar 
-        categories={categories} 
-        onAddCategory={handleAddCategory} 
+      <Sidebar
+        categories={categories}
+        onAddCategory={handleAddCategory}
         onDeleteCategory={handleDeleteCategory}
         monthlyIncomes={monthlyIncomes}
         defaultMonthlyIncome={defaultMonthlyIncome}
@@ -271,35 +265,35 @@ const Index = () => {
         onAddRecurringExpense={handleAddRecurringExpense}
         onDeleteRecurringExpense={handleDeleteRecurringExpense}
       />
-      
+
       <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 pt-16">
         <h1 className="text-2xl xs:text-3xl sm:text-4xl font-extrabold text-center mb-4 sm:mb-6 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500 drop-shadow-sm px-2">
           Išlaidų Skaičiuoklė
         </h1>
-        
+
         <div className="mb-4 sm:mb-6 flex justify-center">
-          <MonthYearNavigator 
-            selectedMonth={selectedMonth} 
-            setSelectedMonth={setSelectedMonth} 
-            selectedYear={selectedYear} 
-            setSelectedYear={setSelectedYear} 
+          <MonthYearNavigator
+            selectedMonth={selectedMonth}
+            setSelectedMonth={setSelectedMonth}
+            selectedYear={selectedYear}
+            setSelectedYear={setSelectedYear}
           />
         </div>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <ExpenseForm onAddExpense={handleAddExpense} categories={categories} />
-          <IncomeTracker 
-            monthlyIncome={currentMonthIncome} 
-            totalExpenses={totalExpensesForSelectedMonth} 
-            previousMonthCarryOver={previousMonthCarryOver} 
+          <IncomeTracker
+            monthlyIncome={currentMonthIncome}
+            totalExpenses={totalExpensesForSelectedMonth}
+            previousMonthCarryOver={previousMonthCarryOver}
           />
         </div>
-        
+
         <div className="space-y-4 sm:space-y-6">
-          <ExpenseChart 
-            expenses={filteredExpenses} 
-            selectedMonth={selectedMonth} 
-            selectedYear={selectedYear} 
+          <ExpenseChart
+            expenses={filteredExpenses}
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
           />
           <MonthlyLineChart monthlyData={monthlyExpenseTotals} selectedYear={selectedYear} />
           <ExpenseList expenses={filteredExpenses} onDeleteExpense={handleDeleteExpense} />

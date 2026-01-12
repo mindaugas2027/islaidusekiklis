@@ -157,26 +157,19 @@ const AdminDashboard = () => {
     }
   };
 
-  // Check if we're impersonating a user
+  // Check if we're impersonating a user - only show for admins
   useEffect(() => {
     const impersonatingUserStr = localStorage.getItem('impersonating_user');
-    if (impersonatingUserStr) {
+    if (impersonatingUserStr && isAdmin) {
       const impersonatingUser = JSON.parse(impersonatingUserStr);
-      // Only show the toast if we're actually an admin
-      const checkIfAdmin = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.email === 'mindaugas@gmail.com') {
-          toast.info(`Peržiūrate kaip ${impersonatingUser.email || impersonatingUser.id}`, {
-            action: {
-              label: "Baigti peržiūrą",
-              onClick: stopImpersonation
-            }
-          });
+      toast.info(`Peržiūrate kaip ${impersonatingUser.email || impersonatingUser.id}`, {
+        action: {
+          label: "Baigti peržiūrą",
+          onClick: stopImpersonation
         }
-      };
-      checkIfAdmin();
+      });
     }
-  }, []);
+  }, [isAdmin]);
 
   if (loading && !isAdmin) {
     return (
