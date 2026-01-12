@@ -106,6 +106,7 @@ const Login = () => {
             }}
             theme="light"
             localization={localization}
+            view="sign_in"
           />
         </CardContent>
       </Card>
