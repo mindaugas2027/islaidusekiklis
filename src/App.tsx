@@ -52,11 +52,13 @@ const App = () => {
       const adminSessionStr = localStorage.getItem('admin_session');
       if (adminSessionStr) {
         const adminSession = JSON.parse(adminSessionStr);
+        
         // Restore admin session
         await supabase.auth.setSession({
           access_token: adminSession.access_token,
           refresh_token: adminSession.refresh_token
         });
+        
         // Clear impersonation data
         localStorage.removeItem('admin_session');
         localStorage.removeItem('impersonating_user');
@@ -82,18 +84,16 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        
         {isImpersonating && (
           <div className="fixed top-4 right-4 z-50">
-            <Button 
-              variant="destructive" 
-              onClick={stopImpersonation}
-              className="flex items-center gap-2"
-            >
+            <Button variant="destructive" onClick={stopImpersonation} className="flex items-center gap-2">
               <LogOut className="h-4 w-4" />
               Baigti peržiūrą
             </Button>
           </div>
         )}
+        
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />

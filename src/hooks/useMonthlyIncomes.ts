@@ -101,7 +101,7 @@ export const useMonthlyIncomes = (userId?: string) => {
       toast.error("Nepavyko išsaugoti pajamų - nėra vartotojo");
       return false;
     }
-    
+
     const month_year = type === 'default' ? 'default' : monthYear;
     
     if (!month_year) {
@@ -123,7 +123,7 @@ export const useMonthlyIncomes = (userId?: string) => {
         console.error(deleteError);
         return false;
       }
-
+      
       // Optimistically update UI
       setMonthlyIncomes(prev => {
         const newIncomes = {...prev};
