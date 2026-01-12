@@ -121,7 +121,7 @@ const App = () => {
         <Toaster />
         <Sonner />
 
-        {isImpersonating && impersonatingUser && (
+        {isImpersonating && impersonatingUser && isAdmin && (
           <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
             <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1">
               <User className="h-4 w-4" />
