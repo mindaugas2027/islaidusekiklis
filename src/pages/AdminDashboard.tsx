@@ -18,13 +18,36 @@ interface UserProfile {
 const AdminDashboard = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchUsers();
+    checkAdminStatus();
   }, []);
 
+  const checkAdminStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user?.email === 'mindaugas@gmail.com') {
+        setIsAdmin(true);
+        fetchUsers();
+      } else {
+        toast.error("Neturite teisės peržiūrėti šio puslapio");
+        navigate("/");
+      }
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      toast.error("Nepavyko patikrinti vartotojo teisių");
+      navigate("/");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchUsers = async () => {
+    if (!isAdmin) return;
+    
     setLoading(true);
     try {
       console.log("Attempting to fetch users...");
@@ -87,10 +110,18 @@ const AdminDashboard = () => {
     });
   };
 
-  if (loading) {
+  if (loading && !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <p>Įkeliama...</p>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p>Neturite teisės peržiūrėti šio puslapio</p>
       </div>
     );
   }
