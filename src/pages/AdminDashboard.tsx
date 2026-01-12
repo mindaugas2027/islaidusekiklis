@@ -95,7 +95,8 @@ const AdminDashboard = () => {
       localStorage.setItem('impersonating_user', JSON.stringify(impersonationData));
       // Set a flag to indicate we're impersonating
       localStorage.setItem('is_impersonating', 'true');
-      toast.success(`Peržiūrate kaip ${userEmail || userId}`);
+
+      toast.success(`Peržiūrate kaip ${userEmail || userId}. Visos duomenys bus rodomi kaip šio vartotojo.`);
       navigate("/");
     } catch (error: any) {
       console.error("Error impersonating user:", error);
