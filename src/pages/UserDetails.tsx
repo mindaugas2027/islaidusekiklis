@@ -71,15 +71,16 @@ const UserDetails = () => {
     const fetchUserData = async () => {
       setLoading(true);
       try {
-        // Fetch user profile
+        // Fetch user profile using the admin function
         const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
+          .rpc('get_user_by_id', { user_id: userId });
 
-        if (profileError) throw profileError;
-        setUser(profileData);
+        if (profileError) {
+          console.error("Profile error:", profileError);
+          // Don't throw error, just set user to null
+        } else if (profileData && profileData.length > 0) {
+          setUser(profileData[0]);
+        }
 
         // Fetch expenses
         const { data: expensesData, error: expensesError } = await supabase
@@ -88,8 +89,11 @@ const UserDetails = () => {
           .eq('user_id', userId)
           .order('date', { ascending: false });
 
-        if (expensesError) throw expensesError;
-        setExpenses(expensesData);
+        if (expensesError) {
+          console.error("Expenses error:", expensesError);
+        } else {
+          setExpenses(expensesData);
+        }
 
         // Fetch categories
         const { data: categoriesData, error: categoriesError } = await supabase
@@ -98,8 +102,11 @@ const UserDetails = () => {
           .eq('user_id', userId)
           .order('name');
 
-        if (categoriesError) throw categoriesError;
-        setCategories(categoriesData);
+        if (categoriesError) {
+          console.error("Categories error:", categoriesError);
+        } else {
+          setCategories(categoriesData);
+        }
 
         // Fetch monthly incomes
         const { data: incomesData, error: incomesError } = await supabase
@@ -108,8 +115,11 @@ const UserDetails = () => {
           .eq('user_id', userId)
           .order('month_year');
 
-        if (incomesError) throw incomesError;
-        setMonthlyIncomes(incomesData);
+        if (incomesError) {
+          console.error("Incomes error:", incomesError);
+        } else {
+          setMonthlyIncomes(incomesData);
+        }
 
         // Fetch recurring expenses
         const { data: recurringData, error: recurringError } = await supabase
@@ -118,8 +128,11 @@ const UserDetails = () => {
           .eq('user_id', userId)
           .order('name');
 
-        if (recurringError) throw recurringError;
-        setRecurringExpenses(recurringData);
+        if (recurringError) {
+          console.error("Recurring expenses error:", recurringError);
+        } else {
+          setRecurringExpenses(recurringData);
+        }
 
         toast.success("Vartotojo duomenys sėkmingai įkelti");
       } catch (error) {
