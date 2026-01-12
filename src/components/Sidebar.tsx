@@ -71,8 +71,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         </SheetHeader>
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           {isAdmin && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full flex items-center justify-start gap-2"
               onClick={() => navigate("/admin")}
             >
