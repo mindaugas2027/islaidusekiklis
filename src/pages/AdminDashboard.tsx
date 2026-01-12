@@ -7,18 +7,16 @@ import { Eye, User } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
-interface UserRole {
+interface UserProfile {
   id: string;
-  role: string;
-  subscription_type: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
   created_at: string;
-  user?: {
-    email?: string;
-  } | null;
 }
 
 const AdminDashboard = () => {
-  const [users, setUsers] = useState<UserRole[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -29,22 +27,35 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select(`
-          id,
-          role,
-          subscription_type,
-          created_at,
-          auth.users (email)
-        `)
+      // First get all user IDs from auth
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) throw authError;
+      
+      // Get profile data for all users
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (profilesError) throw profilesError;
 
-      // Properly type the response data
-      const usersData = data as unknown as UserRole[];
-      setUsers(usersData);
+      // Combine auth data with profile data
+      const usersWithProfiles = authUsers.users.map(authUser => {
+        const profile = profiles.find(p => p.id === authUser.id) || {
+          id: authUser.id,
+          first_name: null,
+          last_name: null,
+          created_at: authUser.created_at
+        };
+        
+        return {
+          ...profile,
+          email: authUser.email
+        };
+      });
+
+      setUsers(usersWithProfiles);
     } catch (error) {
       toast.error("Nepavyko įkelti vartotojų sąrašo");
       console.error(error);
@@ -88,8 +99,8 @@ const AdminDashboard = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>El. paštas</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Prenumeratos tipas</TableHead>
+                      <TableHead>Vardas</TableHead>
+                      <TableHead>Pavardė</TableHead>
                       <TableHead>Registracijos data</TableHead>
                       <TableHead>Veiksmai</TableHead>
                     </TableRow>
@@ -97,24 +108,13 @@ const AdminDashboard = () => {
                   <TableBody>
                     {users.map((user) => (
                       <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.user?.email || 'N/A'}</TableCell>
+                        <TableCell className="font-medium">{user.email || 'N/A'}</TableCell>
+                        <TableCell>{user.first_name || 'Nėra'}</TableCell>
+                        <TableCell>{user.last_name || 'Nėra'}</TableCell>
                         <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            user.role === 'admin' 
-                              ? 'bg-red-100 text-red-800' 
-                              : user.subscription_type === 'paid' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {user.role === 'admin' ? 'Administratorius' : 
-                             user.subscription_type === 'paid' ? 'Mokamas vartotojas' : 'Vartotojas'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {user.subscription_type === 'paid' ? 'Mokama' : 'Nemokama'}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(user.created_at).toLocaleDateString('lt-LT')}
+                          {user.created_at 
+                            ? new Date(user.created_at).toLocaleDateString('lt-LT') 
+                            : 'N/A'}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
@@ -122,7 +122,6 @@ const AdminDashboard = () => {
                               variant="outline"
                               size="sm"
                               onClick={() => impersonateUser(user.id)}
-                              disabled={user.role === 'admin'}
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               Peržiūrėti
