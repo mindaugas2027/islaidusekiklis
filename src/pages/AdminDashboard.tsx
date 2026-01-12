@@ -28,7 +28,6 @@ const AdminDashboard = () => {
   const checkAdminStatus = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
       if (user?.email === 'mindaugas@gmail.com') {
         setIsAdmin(true);
         fetchUsers();
@@ -47,53 +46,33 @@ const AdminDashboard = () => {
 
   const fetchUsers = async () => {
     if (!isAdmin) return;
-    
     setLoading(true);
     try {
-      console.log("Attempting to fetch users...");
+      console.log("Attempting to fetch users via function...");
       
-      // Get all users from auth
-      const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
+      // Use the secure function instead of admin API
+      const { data, error } = await supabase.rpc('get_all_users');
       
-      if (authError) {
-        console.error("Auth error:", authError);
-        toast.error(`Auth klaida: ${authError.message}`);
-        throw authError;
+      if (error) {
+        console.error("Function error:", error);
+        toast.error(`Funkcijos klaida: ${error.message}`);
+        throw error;
       }
       
-      console.log("Auth users fetched:", authUsers?.length || 0);
+      console.log("Users fetched:", data?.length || 0);
       
-      // Get profile data for all users
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*');
-
-      if (profilesError) {
-        console.error("Profiles error:", profilesError);
-        toast.error(`Profilio klaida: ${profilesError.message}`);
-        throw profilesError;
-      }
-
-      console.log("Profiles fetched:", profiles?.length || 0);
-
-      // Combine auth data with profile data
-      const usersWithProfiles = authUsers.map(authUser => {
-        const profile = profiles.find(p => p.id === authUser.id) || {
-          id: authUser.id,
-          first_name: null,
-          last_name: null,
-          created_at: authUser.created_at
-        };
-        
-        return {
-          ...profile,
-          email: authUser.email
-        };
-      });
-
-      console.log("Combined users:", usersWithProfiles.length);
-      setUsers(usersWithProfiles);
-      toast.success(`Sėkmingai įkelta ${usersWithProfiles.length} vartotojų`);
+      // Transform the data to match our interface
+      const transformedUsers = data.map((user: any) => ({
+        id: user.id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        created_at: user.created_at
+      }));
+      
+      console.log("Transformed users:", transformedUsers.length);
+      setUsers(transformedUsers);
+      toast.success(`Sėkmingai įkelta ${transformedUsers.length} vartotojų`);
     } catch (error: any) {
       console.error("Error fetching users:", error);
       toast.error("Nepavyko įkelti vartotojų sąrašo");
@@ -133,7 +112,6 @@ const AdminDashboard = () => {
           <h1 className="text-2xl md:text-3xl font-bold">Administratoriaus skydelis</h1>
           <Button onClick={() => navigate("/")}>Grįžti į pagrindinį</Button>
         </div>
-
         <Card>
           <CardHeader>
             <CardTitle className="text-xl font-semibold">Visi vartotojai ({users.length})</CardTitle>
@@ -165,17 +143,11 @@ const AdminDashboard = () => {
                         <TableCell>{user.first_name || 'Nėra'}</TableCell>
                         <TableCell>{user.last_name || 'Nėra'}</TableCell>
                         <TableCell>
-                          {user.created_at 
-                            ? new Date(user.created_at).toLocaleDateString('lt-LT') 
-                            : 'N/A'}
+                          {user.created_at ? new Date(user.created_at).toLocaleDateString('lt-LT') : 'N/A'}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => impersonateUser(user.id)}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => impersonateUser(user.id)}>
                               <Eye className="h-4 w-4 mr-1" />
                               Peržiūrėti
                             </Button>
