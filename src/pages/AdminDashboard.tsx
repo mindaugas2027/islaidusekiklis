@@ -129,8 +129,43 @@ const AdminDashboard = () => {
     }
   };
 
-  const viewUserDetails = (userId: string) => {
-    navigate(`/admin/users/${userId}`);
+  const impersonateUser = async (userId: string, userEmail: string | null) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        localStorage.setItem('admin_session', JSON.stringify(session));
+      }
+      const impersonationData = { id: userId, email: userEmail };
+      localStorage.setItem('impersonating_user', JSON.stringify(impersonationData));
+      localStorage.setItem('is_impersonating', 'true');
+
+      toast.success(`Peržiūrate kaip ${userEmail || userId}. Visos duomenys bus rodomi kaip šio vartotojo.`);
+      navigate("/");
+    } catch (error: any) {
+      console.error("Error impersonating user:", error);
+      toast.error("Nepavyko peržiūrėti vartotojo");
+    }
+  };
+
+  const stopImpersonation = async () => {
+    try {
+      const adminSessionStr = localStorage.getItem('admin_session');
+      if (adminSessionStr) {
+        const adminSession = JSON.parse(adminSessionStr);
+        await supabase.auth.setSession({
+          access_token: adminSession.access_token,
+          refresh_token: adminSession.refresh_token
+        });
+        localStorage.removeItem('admin_session');
+        localStorage.removeItem('impersonating_user');
+        localStorage.removeItem('is_impersonating');
+        toast.success("Grįžta į administratoriaus paskyrą");
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Error stopping impersonation:", error);
+      toast.error("Nepavyko grįžti į administratoriaus paskyrą");
+    }
   };
 
   const deleteUser = async (userId: string) => {
@@ -190,6 +225,19 @@ const AdminDashboard = () => {
     acc[item.expense.category] += item.expense.amount;
     return acc;
   }, {} as { [key: string]: number });
+
+  useEffect(() => {
+    const impersonatingUserStr = localStorage.getItem('impersonating_user');
+    if (impersonatingUserStr && isAdmin) {
+      const impersonatingUser = JSON.parse(impersonatingUserStr);
+      toast.info(`Peržiūrate kaip ${impersonatingUser.email || impersonatingUser.id}`, {
+        action: {
+          label: "Baigti peržiūrą",
+          onClick: stopImpersonation
+        }
+      });
+    }
+  }, [isAdmin]);
 
   if (loading && !isAdmin) {
     return (
@@ -306,7 +354,7 @@ const AdminDashboard = () => {
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-2">
-                                <Button variant="outline" size="sm" onClick={() => viewUserDetails(user.id)}>
+                                <Button variant="outline" size="sm" onClick={() => impersonateUser(user.id, user.email)}>
                                   <Eye className="h-4 w-4 mr-1" />
                                   Peržiūrėti
                                 </Button>
