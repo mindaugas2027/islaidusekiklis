@@ -81,7 +81,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const impersonateUser = async (userId: string) => {
+  const impersonateUser = async (userId: string, userEmail: string | null) => {
     try {
       // Store the admin session in localStorage
       const { data: { session } } = await supabase.auth.getSession();
@@ -89,22 +89,17 @@ const AdminDashboard = () => {
         localStorage.setItem('admin_session', JSON.stringify(session));
       }
       
-      // Get the user's data
-      const { data: userData, error: userError } = await supabase.rpc('get_user_by_id', { user_id: userId });
-      
-      if (userError) {
-        toast.error(`Nepavyko gauti vartotojo duomenų: ${userError.message}`);
-        return;
-      }
-      
-      if (!userData || userData.length === 0) {
-        toast.error("Vartotojas nerastas");
-        return;
-      }
-      
       // Store impersonation info
-      localStorage.setItem('impersonating_user', JSON.stringify(userData[0]));
-      toast.success(`Peržiūrite kaip ${userData[0].email}`);
+      const impersonationData = {
+        id: userId,
+        email: userEmail
+      };
+      localStorage.setItem('impersonating_user', JSON.stringify(impersonationData));
+      
+      // Set a flag to indicate we're impersonating
+      localStorage.setItem('is_impersonating', 'true');
+      
+      toast.success(`Peržiūrite kaip ${userEmail || userId}`);
       navigate("/");
     } catch (error: any) {
       console.error("Error impersonating user:", error);
@@ -126,6 +121,7 @@ const AdminDashboard = () => {
         // Clear impersonation data
         localStorage.removeItem('admin_session');
         localStorage.removeItem('impersonating_user');
+        localStorage.removeItem('is_impersonating');
         toast.success("Grįžta į administratoriaus paskyrą");
         window.location.reload();
       }
@@ -140,7 +136,7 @@ const AdminDashboard = () => {
     const impersonatingUserStr = localStorage.getItem('impersonating_user');
     if (impersonatingUserStr) {
       const impersonatingUser = JSON.parse(impersonatingUserStr);
-      toast.info(`Peržiūrite kaip ${impersonatingUser.email}`, {
+      toast.info(`Peržiūrite kaip ${impersonatingUser.email || impersonatingUser.id}`, {
         action: {
           label: "Baigti peržiūrą",
           onClick: stopImpersonation
@@ -210,7 +206,7 @@ const AdminDashboard = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => impersonateUser(user.id)}>
+                            <Button variant="outline" size="sm" onClick={() => impersonateUser(user.id, user.email)}>
                               <Eye className="h-4 w-4 mr-1" /> Peržiūrėti
                             </Button>
                           </div>
