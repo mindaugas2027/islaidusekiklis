@@ -27,44 +27,40 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // First, let's just get profiles
+      // Get all users from auth
+      const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) {
+        console.error("Auth error:", authError);
+        throw authError;
+      }
+      
+      // Get profile data for all users
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
 
       if (profilesError) {
         console.error("Profiles error:", profilesError);
         throw profilesError;
       }
 
-      // Then get auth user data for each profile
-      const usersWithAuthData = await Promise.all(
-        profiles.map(async (profile) => {
-          try {
-            const { data: { user }, error } = await supabase.auth.admin.getUserById(profile.id);
-            if (error) {
-              console.error(`Error fetching user ${profile.id}:`, error);
-              return {
-                ...profile,
-                email: null
-              };
-            }
-            return {
-              ...profile,
-              email: user?.email || null
-            };
-          } catch (err) {
-            console.error(`Error fetching user ${profile.id}:`, err);
-            return {
-              ...profile,
-              email: null
-            };
-          }
-        })
-      );
+      // Combine auth data with profile data
+      const usersWithProfiles = authUsers.map(authUser => {
+        const profile = profiles.find(p => p.id === authUser.id) || {
+          id: authUser.id,
+          first_name: null,
+          last_name: null,
+          created_at: authUser.created_at
+        };
+        
+        return {
+          ...profile,
+          email: authUser.email
+        };
+      });
 
-      setUsers(usersWithAuthData);
+      setUsers(usersWithProfiles);
     } catch (error) {
       toast.error("Nepavyko įkelti vartotojų sąrašo");
       console.error("Error fetching users:", error);
@@ -83,7 +79,7 @@ const AdminDashboard = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <p>Įkeliama...</p>
-      </div>
+    </div>
     );
   }
 
@@ -97,7 +93,7 @@ const AdminDashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl font-semibold">Visi vartotojai</CardTitle>
+            <CardTitle className="text-xl font-semibold">Visi vartotojai ({users.length})</CardTitle>
           </CardHeader>
           <CardContent>
             {users.length === 0 ? (
