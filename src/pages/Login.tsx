@@ -66,9 +66,6 @@ const Login = () => {
           <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
             Prisijungimas
           </CardTitle>
-          <p className="text-sm text-muted-foreground text-center mt-2">
-            Prisijunkite prie savo paskyros ir tęskite savo finansų valdymą
-          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <Auth
