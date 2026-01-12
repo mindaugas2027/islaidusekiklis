@@ -1,13 +1,14 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Settings, LogOut } from "lucide-react";
+import { Settings, LogOut, Users } from "lucide-react";
 import CategoryManager from "./CategoryManager";
 import MonthlyBudgetSettings from "./MonthlyBudgetSettings";
 import RecurringExpenseManager from "./RecurringExpenseManager";
 import { RecurringExpense } from "@/types/recurringExpense";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface SidebarProps {
   categories: string[];
@@ -32,6 +33,20 @@ const Sidebar: React.FC<SidebarProps> = ({
   onAddRecurringExpense,
   onDeleteRecurringExpense,
 }) => {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email === 'mindaugas@gmail.com') {
+        setIsAdmin(true);
+      }
+    };
+
+    checkAdminStatus();
+  }, []);
+
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -55,6 +70,16 @@ const Sidebar: React.FC<SidebarProps> = ({
           <SheetTitle className="text-2xl sm:text-3xl font-bold text-center">Nustatymai</SheetTitle>
         </SheetHeader>
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          {isAdmin && (
+            <Button 
+              variant="outline" 
+              className="w-full flex items-center justify-start gap-2"
+              onClick={() => navigate("/admin")}
+            >
+              <Users className="h-5 w-5" />
+              <span>Visi vartotojai</span>
+            </Button>
+          )}
           <CategoryManager
             categories={categories}
             onAddCategory={onAddCategory}
@@ -72,7 +97,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             onDeleteRecurringExpense={onDeleteRecurringExpense}
           />
           <Button variant="destructive" className="w-full mt-4" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" /> Atsijungti
+            <LogOut className="mr-2 h-4 w-4" />
+            Atsijungti
           </Button>
         </div>
       </SheetContent>
