@@ -1,61 +1,53 @@
-import React, { useEffect } from "react";
-import { Auth } from "@supabase/auth-ui-react";
-import { ThemeSupa } from "@supabase/auth-ui-shared";
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
 const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN") {
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      let result;
+      if (isSignUp) {
+        result = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`
+          }
+        });
+      } else {
+        result = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+      }
+
+      if (result.error) {
+        toast.error(result.error.message);
+      } else if (isSignUp) {
+        toast.success("Registracija sėkminga! Patikrinkite el. paštą patvirtinimui.");
+        setIsSignUp(false);
+      } else {
+        toast.success("Sėkmingai prisijungėte!");
         navigate("/");
       }
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [navigate]);
-
-  // Localization for Supabase Auth UI
-  const localization = {
-    variables: {
-      sign_in: {
-        email_label: "El. pašto adresas",
-        password_label: "Slaptažodis",
-        email_input_placeholder: "Įveskite savo el. paštą",
-        password_input_placeholder: "Įveskite savo slaptažodį",
-        button_label: "Prisijungti",
-        loading_button_label: "Prisijungiama...",
-        social_provider_text: "Prisijungti su {{provider}}",
-        link_text: "Pamiršote slaptažodį?",
-        confirmation_text: "Neturite paskyros? Susikurkite čia"
-      },
-      sign_up: {
-        email_label: "El. pašto adresas",
-        password_label: "Slaptažodis",
-        email_input_placeholder: "Įveskite savo el. paštą",
-        password_input_placeholder: "Įveskite savo slaptažodį",
-        button_label: "Registruotis",
-        loading_button_label: "Registruojamasi...",
-        social_provider_text: "Registruotis su {{provider}}",
-        link_text: "Jau turite paskyrą? Prisijungti",
-        confirmation_text: "Sutinku su naudojimo sąlygomis"
-      },
-      forgotten_password: {
-        email_label: "El. pašto adresas",
-        password_label: "Slaptažodis",
-        email_input_placeholder: "Įveskite savo el. paštą",
-        password_input_placeholder: "Įveskite savo slaptažodį",
-        button_label: "Siųsti slaptažodžio atstatymo nuorodą",
-        loading_button_label: "Siunčiama...",
-        social_provider_text: "Prisijungti su {{provider}}",
-        link_text: "Grįžti į prisijungimą",
-        confirmation_text: "Patikrinkite savo el. paštą"
-      }
+    } catch (error) {
+      toast.error("Įvyko netikėta klaida. Bandykite dar kartą.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -64,50 +56,70 @@ const Login = () => {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1">
           <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
-            Prisijungimas
+            {isSignUp ? "Registracija" : "Prisijungimas"}
           </CardTitle>
+          <CardDescription className="text-center">
+            {isSignUp 
+              ? "Susikurkite naują paskyrą" 
+              : "Prisijunkite prie savo paskyros"}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Auth
-            supabaseClient={supabase}
-            providers={[]}
-            redirectTo={`${window.location.origin}/`}
-            appearance={{
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: "hsl(var(--primary))",
-                    brandAccent: "hsl(var(--primary-foreground))",
-                    defaultButtonBackground: "hsl(var(--secondary))",
-                    defaultButtonBackgroundHover: "hsl(var(--secondary))",
-                    defaultButtonText: "hsl(var(--secondary-foreground))",
-                    anchorTextColor: "hsl(var(--primary))",
-                    anchorTextHoverColor: "hsl(var(--primary-foreground))",
-                    inputBackground: "hsl(var(--background))",
-                    inputBorderFocus: "hsl(var(--primary))",
-                    inputLabelText: "hsl(var(--foreground))",
-                    inputPlaceholder: "hsl(var(--muted-foreground))",
-                  },
-                  fontSizes: {
-                    baseInputSize: "14px",
-                  },
-                  space: {
-                    buttonPadding: "8px 16px",
-                    labelBottomMargin: "8px",
-                  },
-                  radii: {
-                    borderRadiusButton: "6px",
-                    buttonBorderRadius: "6px",
-                    inputBorderRadius: "6px",
-                  },
-                },
-              },
-            }}
-            theme="light"
-            localization={localization}
-            view="sign_in"
-          />
+          <form onSubmit={handleAuth} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">El. pašto adresas</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="iveskite@pastas.lt"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Slaptažodis</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Įveskite slaptažodį"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading 
+                ? (isSignUp ? "Registruojamasi..." : "Prisijungiama...") 
+                : (isSignUp ? "Registruotis" : "Prisijungti")}
+            </Button>
+          </form>
+
+          <div className="text-center text-sm">
+            {isSignUp ? (
+              <p>
+                Jau turite paskyrą?{" "}
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(false)}
+                  className="text-primary hover:underline font-medium"
+                >
+                  Prisijungti
+                </button>
+              </p>
+            ) : (
+              <p>
+                Neturite paskyros?{" "}
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(true)}
+                  className="text-primary hover:underline font-medium"
+                >
+                  Susikurkite čia
+                </button>
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
