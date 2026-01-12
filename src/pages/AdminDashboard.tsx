@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, User } from "lucide-react";
+import { Eye } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -27,35 +27,44 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Get all users from auth
-      const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) throw authError;
-      
-      // Get profile data for all users
+      // First, let's just get profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error("Profiles error:", profilesError);
+        throw profilesError;
+      }
 
-      // Combine auth data with profile data
-      const usersWithProfiles = authUsers.map(authUser => {
-        const profile = profiles.find(p => p.id === authUser.id) || {
-          id: authUser.id,
-          first_name: null,
-          last_name: null,
-          created_at: authUser.created_at
-        };
-        
-        return {
-          ...profile,
-          email: authUser.email
-        };
-      });
+      // Then get auth user data for each profile
+      const usersWithAuthData = await Promise.all(
+        profiles.map(async (profile) => {
+          try {
+            const { data: { user }, error } = await supabase.auth.admin.getUserById(profile.id);
+            if (error) {
+              console.error(`Error fetching user ${profile.id}:`, error);
+              return {
+                ...profile,
+                email: null
+              };
+            }
+            return {
+              ...profile,
+              email: user?.email || null
+            };
+          } catch (err) {
+            console.error(`Error fetching user ${profile.id}:`, err);
+            return {
+              ...profile,
+              email: null
+            };
+          }
+        })
+      );
 
-      setUsers(usersWithProfiles);
+      setUsers(usersWithAuthData);
     } catch (error) {
       toast.error("Nepavyko įkelti vartotojų sąrašo");
       console.error("Error fetching users:", error);
