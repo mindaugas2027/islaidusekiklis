@@ -228,63 +228,6 @@ const MonthlyBudgetSettings: React.FC<MonthlyBudgetSettingsProps> = ({
             Ši suma bus naudojama mėnesiams, kuriems nenustatytos individualios pajamos.
           </p>
         </div>
-        <div className="border-t pt-4">
-          <Label className="text-lg font-semibold">
-            Nustatyti pajamas nuo mėnesio
-          </Label>
-          <div className="space-y-2 mt-1">
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-              <div className="flex-1">
-                <Label htmlFor="new-income-month">Mėnuo</Label>
-                <Select value={newIncomeMonth} onValueChange={setNewIncomeMonth}>
-                  <SelectTrigger id="new-income-month">
-                    <SelectValue placeholder="Pasirinkite mėnesį" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {months.map((month) => (
-                      <SelectItem key={month.value} value={month.value}>
-                        {month.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex-1">
-                <Label htmlFor="new-income-year">Metai</Label>
-                <Select value={newIncomeYear} onValueChange={setNewIncomeYear}>
-                  <SelectTrigger id="new-income-year">
-                    <SelectValue placeholder="Pasirinkite metus" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableYearsForSettings.map((year) => (
-                      <SelectItem key={year} value={year}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Input
-              type="number"
-              value={newIncomeAmount}
-              onChange={(e) => setNewIncomeAmount(e.target.value)}
-              placeholder="Pajamų suma"
-              step="0.01"
-              className="mt-2"
-            />
-            <Button
-              onClick={handleAddDateBasedIncome}
-              className="w-full"
-              variant="secondary"
-            >
-              Pridėti pajamų nustatymą
-            </Button>
-            <p className="text-sm text-muted-foreground">
-              Ši funkcija leidžia nustatyti pajamas, kurios bus taikomos nuo pasirinkto mėnesio.
-            </p>
-          </div>
-        </div>
         {dateBasedIncomes.length > 0 && (
           <div className="border-t pt-4">
             <Label className="text-lg font-semibold">
