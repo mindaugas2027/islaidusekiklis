@@ -61,11 +61,13 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Prisijungimas</CardTitle>
-          <p className="text-sm text-muted-foreground text-center">
-            Prisijunkite prie savo paskyros
+          <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
+            Prisijungimas
+          </CardTitle>
+          <p className="text-sm text-muted-foreground text-center mt-2">
+            Prisijunkite prie savo paskyros ir tęskite savo finansų valdymą
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
