@@ -2,17 +2,36 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const useMonthlyIncomes = () => {
+export const useMonthlyIncomes = (userId?: string) => {
   const [monthlyIncomes, setMonthlyIncomes] = useState<{ [key: string]: number }>({});
   const [defaultMonthlyIncome, setDefaultMonthlyIncome] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
+  const getTargetUserId = useCallback(async () => {
+    // If userId is provided, use it (for impersonation)
+    if (userId) return userId;
+    
+    // Otherwise get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.id;
+  }, [userId]);
+
   const refreshMonthlyIncomes = useCallback(async () => {
     setLoading(true);
+    const targetUserId = await getTargetUserId();
+    
+    if (!targetUserId) {
+      setMonthlyIncomes({});
+      setDefaultMonthlyIncome(0);
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('monthly_incomes')
-      .select('month_year, income');
-    
+      .select('month_year, income')
+      .eq('user_id', targetUserId);
+
     if (error) {
       toast.error("Nepavyko įkelti pajamų");
       console.error(error);
@@ -32,44 +51,59 @@ export const useMonthlyIncomes = () => {
       setMonthlyIncomes(monthIncomes);
     }
     setLoading(false);
-  }, []);
+  }, [getTargetUserId]);
 
   useEffect(() => {
     refreshMonthlyIncomes();
     
-    const channel = supabase
-      .channel('monthly-incomes-changes')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'monthly_incomes' },
-        (payload) => {
-          refreshMonthlyIncomes();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'monthly_incomes' },
-        (payload) => {
-          refreshMonthlyIncomes();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'monthly_incomes' },
-        (payload) => {
-          refreshMonthlyIncomes();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
+    const setupSubscription = async () => {
+      const targetUserId = await getTargetUserId();
+      
+      if (!targetUserId) return;
+      
+      const channel = supabase
+        .channel('monthly-incomes-changes')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'monthly_incomes', filter: `user_id=eq.${targetUserId}` },
+          (payload) => {
+            refreshMonthlyIncomes();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'monthly_incomes', filter: `user_id=eq.${targetUserId}` },
+          (payload) => {
+            refreshMonthlyIncomes();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'DELETE', schema: 'public', table: 'monthly_incomes', filter: `user_id=eq.${targetUserId}` },
+          (payload) => {
+            refreshMonthlyIncomes();
+          }
+        )
+        .subscribe();
+      
+      return () => {
+        supabase.removeChannel(channel);
+      };
     };
-  }, [refreshMonthlyIncomes]);
+    
+    setupSubscription();
+  }, [refreshMonthlyIncomes, getTargetUserId]);
 
   const saveIncome = async (income: number, type: 'default' | 'month', monthYear?: string) => {
+    const targetUserId = await getTargetUserId();
+    
+    if (!targetUserId) {
+      toast.error("Nepavyko išsaugoti pajamų - nėra vartotojo");
+      return false;
+    }
+    
     const month_year = type === 'default' ? 'default' : monthYear;
-
+    
     if (!month_year) {
       toast.error("Nepavyko išsaugoti pajamų - nenurodytas mėnuo");
       return false;
@@ -81,7 +115,8 @@ export const useMonthlyIncomes = () => {
       const { error: deleteError } = await supabase
         .from('monthly_incomes')
         .delete()
-        .eq('month_year', month_year);
+        .eq('month_year', month_year)
+        .eq('user_id', targetUserId);
 
       if (deleteError) {
         toast.error("Nepavyko pašalinti mėnesio pajamų");
@@ -95,7 +130,7 @@ export const useMonthlyIncomes = () => {
         delete newIncomes[month_year];
         return newIncomes;
       });
-
+      
       toast.success(`Mėnesio ${monthYear} pajamos pašalintos. Bus naudojamos numatytosios pajamos.`);
       return true;
     }
@@ -105,6 +140,7 @@ export const useMonthlyIncomes = () => {
       .from('monthly_incomes')
       .update({ income })
       .eq('month_year', month_year)
+      .eq('user_id', targetUserId)
       .select()
       .single();
 
@@ -114,12 +150,9 @@ export const useMonthlyIncomes = () => {
       if (type === 'default') {
         setDefaultMonthlyIncome(income);
       } else if (monthYear) {
-        setMonthlyIncomes(prev => ({
-          ...prev,
-          [monthYear]: income
-        }));
+        setMonthlyIncomes(prev => ({ ...prev, [monthYear]: income }));
       }
-
+      
       if (type === 'default') {
         toast.success("Numatytosios mėnesio pajamos atnaujintos!");
       } else if (monthYear) {
@@ -131,7 +164,7 @@ export const useMonthlyIncomes = () => {
     // If update failed because record doesn't exist, insert new record
     const { data: insertData, error: insertError } = await supabase
       .from('monthly_incomes')
-      .insert([{ month_year, income }])
+      .insert([{ month_year, income, user_id: targetUserId }])
       .select()
       .single();
 
@@ -145,12 +178,9 @@ export const useMonthlyIncomes = () => {
     if (type === 'default') {
       setDefaultMonthlyIncome(income);
     } else if (monthYear) {
-      setMonthlyIncomes(prev => ({
-        ...prev,
-        [monthYear]: income
-      }));
+      setMonthlyIncomes(prev => ({ ...prev, [monthYear]: income }));
     }
-
+    
     if (type === 'default') {
       toast.success("Numatytosios mėnesio pajamos atnaujintos!");
     } else if (monthYear) {
