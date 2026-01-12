@@ -98,7 +98,7 @@ const App = () => {
         <Toaster />
         <Sonner />
 
-        {isImpersonating && isAdmin && (
+        {isImpersonating && (
           <div className="fixed top-4 right-4 z-50">
             <Button variant="destructive" onClick={stopImpersonation} className="flex items-center gap-2">
               <LogOut className="h-4 w-4" />
