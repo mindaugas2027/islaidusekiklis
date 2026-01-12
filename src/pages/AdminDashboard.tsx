@@ -42,12 +42,9 @@ const AdminDashboard = () => {
 
       if (error) throw error;
 
-      // Type assertion with proper validation
-      if (Array.isArray(data)) {
-        setUsers(data as UserRole[]);
-      } else {
-        setUsers([]);
-      }
+      // Properly type the response data
+      const usersData = data as unknown as UserRole[];
+      setUsers(usersData);
     } catch (error) {
       toast.error("Nepavyko įkelti vartotojų sąrašo");
       console.error(error);
@@ -66,7 +63,7 @@ const AdminDashboard = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <p>Įkeliama...</p>
-    </div>
+      </div>
     );
   }
 
