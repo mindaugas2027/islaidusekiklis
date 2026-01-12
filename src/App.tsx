@@ -9,18 +9,25 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isImpersonating, setIsImpersonating] = useState(false);
 
   useEffect(() => {
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setLoading(false);
+      
+      // Check if we're impersonating a user
+      const impersonating = localStorage.getItem('is_impersonating') === 'true';
+      setIsImpersonating(impersonating);
     };
 
     getSession();
@@ -28,12 +35,39 @@ const App = () => {
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setLoading(false);
+      
+      // Check if we're impersonating a user
+      const impersonating = localStorage.getItem('is_impersonating') === 'true';
+      setIsImpersonating(impersonating);
     });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
+
+  const stopImpersonation = async () => {
+    try {
+      // Get the admin session from localStorage
+      const adminSessionStr = localStorage.getItem('admin_session');
+      if (adminSessionStr) {
+        const adminSession = JSON.parse(adminSessionStr);
+        // Restore admin session
+        await supabase.auth.setSession({
+          access_token: adminSession.access_token,
+          refresh_token: adminSession.refresh_token
+        });
+        // Clear impersonation data
+        localStorage.removeItem('admin_session');
+        localStorage.removeItem('impersonating_user');
+        localStorage.removeItem('is_impersonating');
+        setIsImpersonating(false);
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Error stopping impersonation:", error);
+    }
+  };
 
   if (loading) {
     return (
@@ -48,6 +82,18 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        {isImpersonating && (
+          <div className="fixed top-4 right-4 z-50">
+            <Button 
+              variant="destructive" 
+              onClick={stopImpersonation}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Baigti peržiūrą
+            </Button>
+          </div>
+        )}
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
