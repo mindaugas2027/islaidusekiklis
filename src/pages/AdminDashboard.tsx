@@ -162,12 +162,19 @@ const AdminDashboard = () => {
     const impersonatingUserStr = localStorage.getItem('impersonating_user');
     if (impersonatingUserStr) {
       const impersonatingUser = JSON.parse(impersonatingUserStr);
-      toast.info(`Peržiūrate kaip ${impersonatingUser.email || impersonatingUser.id}`, {
-        action: {
-          label: "Baigti peržiūrą",
-          onClick: stopImpersonation
+      // Only show the toast if we're actually an admin
+      const checkIfAdmin = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email === 'mindaugas@gmail.com') {
+          toast.info(`Peržiūrate kaip ${impersonatingUser.email || impersonatingUser.id}`, {
+            action: {
+              label: "Baigti peržiūrą",
+              onClick: stopImpersonation
+            }
+          });
         }
-      });
+      };
+      checkIfAdmin();
     }
   }, []);
 

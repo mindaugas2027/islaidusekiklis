@@ -18,16 +18,22 @@ const App = () => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isImpersonating, setIsImpersonating] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setLoading(false);
-      
+
       // Check if we're impersonating a user
       const impersonating = localStorage.getItem('is_impersonating') === 'true';
       setIsImpersonating(impersonating);
+
+      // Check if current user is admin
+      if (session?.user?.email === 'mindaugas@gmail.com') {
+        setIsAdmin(true);
+      }
     };
 
     getSession();
@@ -35,10 +41,17 @@ const App = () => {
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setLoading(false);
-      
+
       // Check if we're impersonating a user
       const impersonating = localStorage.getItem('is_impersonating') === 'true';
       setIsImpersonating(impersonating);
+
+      // Check if current user is admin
+      if (session?.user?.email === 'mindaugas@gmail.com') {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
     });
 
     return () => {
@@ -52,13 +65,13 @@ const App = () => {
       const adminSessionStr = localStorage.getItem('admin_session');
       if (adminSessionStr) {
         const adminSession = JSON.parse(adminSessionStr);
-        
+
         // Restore admin session
         await supabase.auth.setSession({
           access_token: adminSession.access_token,
           refresh_token: adminSession.refresh_token
         });
-        
+
         // Clear impersonation data
         localStorage.removeItem('admin_session');
         localStorage.removeItem('impersonating_user');
@@ -84,8 +97,8 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        
-        {isImpersonating && (
+
+        {isImpersonating && isAdmin && (
           <div className="fixed top-4 right-4 z-50">
             <Button variant="destructive" onClick={stopImpersonation} className="flex items-center gap-2">
               <LogOut className="h-4 w-4" />
@@ -93,11 +106,11 @@ const App = () => {
             </Button>
           </div>
         )}
-        
+
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
-            <Route path="/admin" element={session ? <AdminDashboard /> : <Navigate to="/login" />} />
+            <Route path="/admin" element={session && isAdmin ? <AdminDashboard /> : <Navigate to="/login" />} />
             <Route path="/" element={session ? <Index /> : <Navigate to="/login" />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
