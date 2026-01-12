@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface UserProfile {
   id: string;
@@ -19,6 +20,7 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,18 +52,15 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     if (!isAdmin) return;
     setLoading(true);
-    
     try {
       console.log("Attempting to fetch users via function...");
       // Use the secure function instead of admin API
       const { data, error } = await supabase.rpc('get_all_users');
-      
       if (error) {
         console.error("Function error:", error);
         toast.error(`Funkcijos klaida: ${error.message}`);
         throw error;
       }
-      
       console.log("Users fetched:", data?.length || 0);
       // Transform the data to match our interface
       const transformedUsers = data.map((user: any) => ({
@@ -71,7 +70,6 @@ const AdminDashboard = () => {
         email: user.email,
         created_at: user.created_at
       }));
-      
       console.log("Transformed users:", transformedUsers.length);
       setUsers(transformedUsers);
       toast.success(`Sėkmingai įkelta ${transformedUsers.length} vartotojų`);
@@ -92,17 +90,11 @@ const AdminDashboard = () => {
       if (session) {
         localStorage.setItem('admin_session', JSON.stringify(session));
       }
-      
       // Store impersonation info
-      const impersonationData = {
-        id: userId,
-        email: userEmail
-      };
+      const impersonationData = { id: userId, email: userEmail };
       localStorage.setItem('impersonating_user', JSON.stringify(impersonationData));
-      
       // Set a flag to indicate we're impersonating
       localStorage.setItem('is_impersonating', 'true');
-      
       toast.success(`Peržiūrate kaip ${userEmail || userId}`);
       navigate("/");
     } catch (error: any) {
@@ -122,18 +114,54 @@ const AdminDashboard = () => {
           access_token: adminSession.access_token,
           refresh_token: adminSession.refresh_token
         });
-        
         // Clear impersonation data
         localStorage.removeItem('admin_session');
         localStorage.removeItem('impersonating_user');
         localStorage.removeItem('is_impersonating');
-        
         toast.success("Grįžta į administratoriaus paskyrą");
         window.location.reload();
       }
     } catch (error) {
       console.error("Error stopping impersonation:", error);
       toast.error("Nepavyko grįžti į administratoriaus paskyrą");
+    }
+  };
+
+  const deleteUser = async (userId: string) => {
+    try {
+      setDeletingUserId(userId);
+      
+      // First, delete all user data from public tables
+      const tables = ['expenses', 'categories', 'monthly_incomes', 'recurring_expenses', 'profiles'];
+      
+      for (const table of tables) {
+        const { error: deleteError } = await supabase
+          .from(table)
+          .delete()
+          .eq('user_id', userId);
+          
+        if (deleteError) {
+          console.error(`Error deleting from ${table}:`, deleteError);
+          throw new Error(`Nepavyko ištrinti duomenų iš ${table}`);
+        }
+      }
+      
+      // Delete the user from auth.users (this requires service role key)
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+      
+      if (authError) {
+        console.error("Error deleting user from auth:", authError);
+        throw new Error("Nepavyko ištrinti vartotojo iš sistemos");
+      }
+      
+      // Remove user from local state
+      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+      toast.success("Vartotojas sėkmingai ištrintas");
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast.error(error.message || "Nepavyko ištrinti vartotojo");
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -177,7 +205,6 @@ const AdminDashboard = () => {
             <Button onClick={() => navigate("/")}>Grįžti į pagrindinį</Button>
           </div>
         </div>
-        
         <Card>
           <CardHeader>
             <CardTitle className="text-xl font-semibold">Visi vartotojai ({users.length})</CardTitle>
@@ -217,6 +244,27 @@ const AdminDashboard = () => {
                               <Eye className="h-4 w-4 mr-1" />
                               Peržiūrėti
                             </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="sm">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Ar tikrai norite ištrinti vartotoją?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Šis veiksmas negrįžtamas. Bus ištrinti visi vartotojo duomenys, įskaitant išlaidas, kategorijas ir kitą informaciją.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Atšaukti</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deleteUser(user.id)} disabled={deletingUserId === user.id}>
+                                    {deletingUserId === user.id ? "Trinama..." : "Patvirtinti"}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </TableCell>
                       </TableRow>
