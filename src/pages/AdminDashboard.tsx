@@ -131,21 +131,19 @@ const AdminDashboard = () => {
     try {
       setDeletingUserId(userId);
 
-      // First, delete all user data using the database function
-      const { error: deleteDataError } = await supabase
-        .rpc('delete_user_and_data', { user_id_to_delete: userId });
+      // Call the edge function to delete the user
+      const { data, error } = await supabase.functions.invoke('delete_user', {
+        body: { user_id: userId }
+      });
 
-      if (deleteDataError) {
-        console.error("Error deleting user data:", deleteDataError);
-        throw new Error("Nepavyko ištrinti vartotojo duomenų");
+      if (error) {
+        console.error("Error calling delete_user function:", error);
+        throw new Error(error.message || "Nepavyko ištrinti vartotojo");
       }
 
-      // Then delete the user from auth.users
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-
-      if (authError) {
-        console.error("Error deleting user from auth:", authError);
-        throw new Error("Nepavyko ištrinti vartotojo iš sistemos");
+      if (data?.error) {
+        console.error("Function returned error:", data.error);
+        throw new Error(data.error);
       }
 
       // Remove user from local state
