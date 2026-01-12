@@ -67,7 +67,6 @@ const AdminDashboard = () => {
     setLoading(true);
     try {
       console.log("Attempting to fetch users via function...");
-      // Use the secure function instead of admin API
       const { data, error } = await supabase.rpc('get_all_users');
       if (error) {
         console.error("Function error:", error);
@@ -75,7 +74,6 @@ const AdminDashboard = () => {
         throw error;
       }
       console.log("Users fetched:", data?.length || 0);
-      // Transform the data to match our interface
       const transformedUsers = data.map((user: any) => ({
         id: user.id,
         first_name: user.first_name,
@@ -89,7 +87,6 @@ const AdminDashboard = () => {
     } catch (error: any) {
       console.error("Error fetching users:", error);
       toast.error("Nepavyko įkelti vartotojų sąrašo");
-      // Set empty array to show UI even on error
       setUsers([]);
     } finally {
       setLoading(false);
@@ -99,7 +96,6 @@ const AdminDashboard = () => {
   const fetchAllExpenses = async () => {
     if (!isAdmin) return;
     try {
-      // Get all expenses from all users using service role
       const { data, error } = await supabase
         .from('expenses')
         .select('*, profiles!inner(email, first_name, last_name)');
@@ -110,7 +106,6 @@ const AdminDashboard = () => {
         return;
       }
 
-      // Transform the data
       const transformedExpenses = data.map((item: any) => ({
         user_id: item.user_id,
         user_email: item.profiles.email,
@@ -136,15 +131,12 @@ const AdminDashboard = () => {
 
   const impersonateUser = async (userId: string, userEmail: string | null) => {
     try {
-      // Store the admin session in localStorage
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         localStorage.setItem('admin_session', JSON.stringify(session));
       }
-      // Store impersonation info
       const impersonationData = { id: userId, email: userEmail };
       localStorage.setItem('impersonating_user', JSON.stringify(impersonationData));
-      // Set a flag to indicate we're impersonating
       localStorage.setItem('is_impersonating', 'true');
 
       toast.success(`Peržiūrate kaip ${userEmail || userId}. Visos duomenys bus rodomi kaip šio vartotojo.`);
@@ -157,16 +149,13 @@ const AdminDashboard = () => {
 
   const stopImpersonation = async () => {
     try {
-      // Get the admin session from localStorage
       const adminSessionStr = localStorage.getItem('admin_session');
       if (adminSessionStr) {
         const adminSession = JSON.parse(adminSessionStr);
-        // Restore admin session
         await supabase.auth.setSession({
           access_token: adminSession.access_token,
           refresh_token: adminSession.refresh_token
         });
-        // Clear impersonation data
         localStorage.removeItem('admin_session');
         localStorage.removeItem('impersonating_user');
         localStorage.removeItem('is_impersonating');
@@ -183,7 +172,6 @@ const AdminDashboard = () => {
     try {
       setDeletingUserId(userId);
 
-      // Call the edge function to delete the user
       const { data, error } = await supabase.functions.invoke('delete_user', {
         body: { user_id: userId }
       });
@@ -198,7 +186,6 @@ const AdminDashboard = () => {
         throw new Error(data.error);
       }
 
-      // Remove user from local state
       setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
       toast.success("Vartotojas sėkmingai ištrintas");
     } catch (error: any) {
@@ -209,12 +196,10 @@ const AdminDashboard = () => {
     }
   };
 
-  // Calculate statistics
   const totalUsers = users.length;
   const totalExpensesCount = allExpenses.length;
   const totalExpensesAmount = allExpenses.reduce((sum, item) => sum + item.expense.amount, 0);
 
-  // Group expenses by user
   const expensesByUser = allExpenses.reduce((acc, item) => {
     if (!acc[item.user_id]) {
       const foundUser = users.find(u => u.id === item.user_id);
@@ -233,7 +218,6 @@ const AdminDashboard = () => {
     return acc;
   }, {} as { [key: string]: { user: UserProfile, expenses: Expense[] } });
 
-  // Group expenses by category
   const expensesByCategory = allExpenses.reduce((acc, item) => {
     if (!acc[item.expense.category]) {
       acc[item.expense.category] = 0;
@@ -242,7 +226,6 @@ const AdminDashboard = () => {
     return acc;
   }, {} as { [key: string]: number });
 
-  // Check if we're impersonating a user - only show for admins
   useEffect(() => {
     const impersonatingUserStr = localStorage.getItem('impersonating_user');
     if (impersonatingUserStr && isAdmin) {

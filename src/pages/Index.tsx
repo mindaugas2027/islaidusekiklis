@@ -44,7 +44,6 @@ const months = [
 ];
 
 const Index = () => {
-  // Check if we're impersonating a user
   const impersonatedUser = useMemo(() => {
     const impersonatingUserStr = localStorage.getItem('impersonating_user');
     if (impersonatingUserStr) {
@@ -57,7 +56,6 @@ const Index = () => {
     return null;
   }, []);
 
-  // Get the impersonated user ID if available
   const impersonatedUserId = impersonatedUser?.id;
 
   const { expenses, loading: expensesLoading, addExpense, deleteExpense } = useExpenses(impersonatedUserId);
@@ -70,17 +68,14 @@ const Index = () => {
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
   const [selectedYear, setSelectedYear] = useState<string>(currentYear);
 
-  // Initialize with default categories if none exist
   useEffect(() => {
     if (!categoriesLoading && categories.length === 0) {
-      // Add default categories
       DEFAULT_CATEGORIES.forEach(cat => {
         addCategory(cat);
       });
     }
   }, [categoriesLoading, categories, addCategory]);
 
-  // Logic to automatically add recurring expenses for the selected month/year based on current date
   useEffect(() => {
     const generateAndMergeExpenses = () => {
       const today = new Date();
@@ -92,13 +87,10 @@ const Index = () => {
 
       if (parseInt(selectedYear) < currentActualYear ||
           (parseInt(selectedYear) === currentActualYear && selectedMonth < currentActualMonth)) {
-        // Past month/year: all recurring expenses for this month are considered due
         maxDayToShow = 31;
       } else if (parseInt(selectedYear) === currentActualYear && selectedMonth === currentActualMonth) {
-        // Current month/year: only recurring expenses up to today's date
         maxDayToShow = currentActualDay;
       } else {
-        // Future month/year: no recurring expenses are due yet
         maxDayToShow = 0;
       }
 
@@ -107,7 +99,6 @@ const Index = () => {
 
       recurringExpenses.forEach(recExpense => {
         if (recExpense.day_of_month <= maxDayToShow) {
-          // Use correct column name
           const tempDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, recExpense.day_of_month);
           const actualDay = Math.min(recExpense.day_of_month, lastDayOfMonth(tempDate).getDate());
           const expenseDate = format(
@@ -116,7 +107,7 @@ const Index = () => {
           );
 
           recurringExpensesForSelectedMonthYear.push({
-            id: `RECURRING-${recExpense.id}-${expenseDate}`, // Unique ID for this instance
+            id: `RECURRING-${recExpense.id}-${expenseDate}`,
             amount: recExpense.amount,
             category: recExpense.category,
             description: recExpense.name,
@@ -124,8 +115,6 @@ const Index = () => {
           });
         }
       });
-
-      // We'll handle recurring expenses display in the UI rather than merging with regular expenses
     };
 
     generateAndMergeExpenses();
@@ -144,7 +133,6 @@ const Index = () => {
   };
 
   const handleDeleteCategory = async (categoryToDelete: string) => {
-    // Check if category is used in any expenses
     const expensesWithCategory = expenses.filter(
       (expense) => expense.category === categoryToDelete
     );
@@ -196,7 +184,6 @@ const Index = () => {
   }, [filteredExpenses]);
 
   const selectedMonthYear = `${selectedYear}-${selectedMonth}`;
-  // Fixed logic: Use default income when monthly income is not set OR when it's 0
   const currentMonthIncome = monthlyIncomes[selectedMonthYear] !== undefined && monthlyIncomes[selectedMonthYear] !== null
     ? monthlyIncomes[selectedMonthYear]
     : defaultMonthlyIncome;
