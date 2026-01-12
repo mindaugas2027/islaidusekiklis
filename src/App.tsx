@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
+import UserDetails from "./pages/UserDetails";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -138,6 +139,7 @@ const App = () => {
           <Routes>
             <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
             <Route path="/admin" element={session && isAdmin ? <AdminDashboard /> : <Navigate to="/login" />} />
+            <Route path="/admin/users/:userId" element={session && isAdmin ? <UserDetails /> : <Navigate to="/login" />} />
             <Route path="/" element={session ? <Index /> : <Navigate to="/login" />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
