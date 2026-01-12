@@ -30,7 +30,6 @@ const AdminDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.email === 'mindaugas@gmail.com') {
         setIsAdmin(true);
-        fetchUsers();
       } else {
         toast.error("Neturite teisės peržiūrėti šio puslapio");
         navigate("/");
@@ -39,10 +38,14 @@ const AdminDashboard = () => {
       console.error("Error checking admin status:", error);
       toast.error("Nepavyko patikrinti vartotojo teisių");
       navigate("/");
-    } finally {
-      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchUsers();
+    }
+  }, [isAdmin]);
 
   const fetchUsers = async () => {
     if (!isAdmin) return;
