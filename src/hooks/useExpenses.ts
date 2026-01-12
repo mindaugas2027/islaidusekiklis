@@ -161,12 +161,9 @@ export const useExpenses = (userId?: string) => {
     const targetUserId = await getTargetUserId();
     
     if (!targetUserId) return 0;
-    
+
     const { data, error } = await supabase
-      .rpc('calculate_monthly_total', { 
-        user_id: targetUserId, 
-        month_year: monthYear 
-      });
+      .rpc('calculate_monthly_total', { user_id: targetUserId, month_year: monthYear });
 
     if (error) {
       console.error('Error calculating monthly total:', error);
@@ -181,13 +178,9 @@ export const useExpenses = (userId?: string) => {
     const targetUserId = await getTargetUserId();
     
     if (!targetUserId) return 0;
-    
+
     const { data, error } = await supabase
-      .rpc('calculate_category_total', { 
-        user_id: targetUserId, 
-        category_name: category, 
-        month_year: monthYear 
-      });
+      .rpc('calculate_category_total', { user_id: targetUserId, category_name: category, month_year: monthYear });
 
     if (error) {
       console.error('Error calculating category total:', error);
