@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,45 @@ const Login = () => {
       authListener.subscription.unsubscribe();
     };
   }, [navigate]);
+
+  // Localization for Supabase Auth UI
+  const localization = {
+    variables: {
+      sign_in: {
+        email_label: "El. pašto adresas",
+        password_label: "Slaptažodis",
+        email_input_placeholder: "Įveskite savo el. paštą",
+        password_input_placeholder: "Įveskite savo slaptažodį",
+        button_label: "Prisijungti",
+        loading_button_label: "Prisijungiama...",
+        social_provider_text: "Prisijungti su {{provider}}",
+        link_text: "Pamiršote slaptažodį?",
+        confirmation_text: "Neturite paskyros? Registruotis"
+      },
+      sign_up: {
+        email_label: "El. pašto adresas",
+        password_label: "Slaptažodis",
+        email_input_placeholder: "Įveskite savo el. paštą",
+        password_input_placeholder: "Įveskite savo slaptažodį",
+        button_label: "Registruotis",
+        loading_button_label: "Registruojamasi...",
+        social_provider_text: "Registruotis su {{provider}}",
+        link_text: "Jau turite paskyrą? Prisijungti",
+        confirmation_text: "Sutinku su naudojimo sąlygomis"
+      },
+      forgotten_password: {
+        email_label: "El. pašto adresas",
+        password_label: "Slaptažodis",
+        email_input_placeholder: "Įveskite savo el. paštą",
+        password_input_placeholder: "Įveskite savo slaptažodį",
+        button_label: "Siųsti slaptažodžio atstatymo nuorodą",
+        loading_button_label: "Siunčiama...",
+        social_provider_text: "Prisijungti su {{provider}}",
+        link_text: "Grįžti į prisijungimą",
+        confirmation_text: "Patikrinkite savo el. paštą"
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -67,6 +106,7 @@ const Login = () => {
               },
             }}
             theme="light"
+            localization={localization}
           />
         </CardContent>
       </Card>
