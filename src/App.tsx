@@ -10,7 +10,8 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, User } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const queryClient = new QueryClient();
 
@@ -19,6 +20,7 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [impersonatingUser, setImpersonatingUser] = useState(null);
 
   useEffect(() => {
     const getSession = async () => {
@@ -29,6 +31,16 @@ const App = () => {
       // Check if we're impersonating a user
       const impersonating = localStorage.getItem('is_impersonating') === 'true';
       setIsImpersonating(impersonating);
+
+      // Get impersonating user info
+      const impersonatingUserStr = localStorage.getItem('impersonating_user');
+      if (impersonatingUserStr) {
+        try {
+          setImpersonatingUser(JSON.parse(impersonatingUserStr));
+        } catch (e) {
+          console.error("Error parsing impersonating user:", e);
+        }
+      }
 
       // Check if current user is admin
       if (session?.user?.email === 'mindaugas@gmail.com') {
@@ -45,6 +57,16 @@ const App = () => {
       // Check if we're impersonating a user
       const impersonating = localStorage.getItem('is_impersonating') === 'true';
       setIsImpersonating(impersonating);
+
+      // Get impersonating user info
+      const impersonatingUserStr = localStorage.getItem('impersonating_user');
+      if (impersonatingUserStr) {
+        try {
+          setImpersonatingUser(JSON.parse(impersonatingUserStr));
+        } catch (e) {
+          console.error("Error parsing impersonating user:", e);
+        }
+      }
 
       // Check if current user is admin
       if (session?.user?.email === 'mindaugas@gmail.com') {
@@ -77,6 +99,7 @@ const App = () => {
         localStorage.removeItem('impersonating_user');
         localStorage.removeItem('is_impersonating');
         setIsImpersonating(false);
+        setImpersonatingUser(null);
         window.location.reload();
       }
     } catch (error) {
@@ -98,8 +121,12 @@ const App = () => {
         <Toaster />
         <Sonner />
 
-        {isImpersonating && (
-          <div className="fixed top-4 right-4 z-50">
+        {isImpersonating && impersonatingUser && (
+          <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+            <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1">
+              <User className="h-4 w-4" />
+              <span>Peržiūri: {impersonatingUser.email || impersonatingUser.id}</span>
+            </Badge>
             <Button variant="destructive" onClick={stopImpersonation} className="flex items-center gap-2">
               <LogOut className="h-4 w-4" />
               Baigti peržiūrą
