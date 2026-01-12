@@ -8,9 +8,9 @@ export const useRecurringExpenses = (userId?: string) => {
   const [loading, setLoading] = useState(true);
 
   const getTargetUserId = useCallback(async () => {
-    // If userId is provided, use it (for impersonation)
+    // If userId is provided (for impersonation), use it
     if (userId) return userId;
-    
+
     // Otherwise get current user
     const { data: { user } } = await supabase.auth.getUser();
     return user?.id;
@@ -19,7 +19,7 @@ export const useRecurringExpenses = (userId?: string) => {
   const refreshRecurringExpenses = useCallback(async () => {
     setLoading(true);
     const targetUserId = await getTargetUserId();
-    
+
     if (!targetUserId) {
       setRecurringExpenses([]);
       setLoading(false);
@@ -43,12 +43,12 @@ export const useRecurringExpenses = (userId?: string) => {
 
   useEffect(() => {
     refreshRecurringExpenses();
-    
+
     const setupSubscription = async () => {
       const targetUserId = await getTargetUserId();
-      
+
       if (!targetUserId) return;
-      
+
       const channel = supabase
         .channel('recurring-expenses-changes')
         .on(
@@ -73,30 +73,30 @@ export const useRecurringExpenses = (userId?: string) => {
           }
         )
         .subscribe();
-      
+
       return () => {
         supabase.removeChannel(channel);
       };
     };
-    
+
     setupSubscription();
   }, [refreshRecurringExpenses, getTargetUserId]);
 
   const addRecurringExpense = async (expense: Omit<RecurringExpense, 'id'>) => {
     const targetUserId = await getTargetUserId();
-    
+
     if (!targetUserId) {
       toast.error("Nepavyko pridėti pasikartojančios išlaidos - nėra vartotojo");
       return null;
     }
-    
+
     // Optimistically update UI
     const tempId = `temp-${Date.now()}`;
     const tempExpense: RecurringExpense = {
       ...expense,
       id: tempId,
     };
-    
+
     setRecurringExpenses(prevExpenses => [...prevExpenses, tempExpense].sort((a, b) => a.name.localeCompare(b.name)));
 
     try {
@@ -125,7 +125,7 @@ export const useRecurringExpenses = (userId?: string) => {
         const withoutTemp = prevExpenses.filter(exp => exp.id !== tempId);
         return [...withoutTemp, data as RecurringExpense].sort((a, b) => a.name.localeCompare(b.name));
       });
-      
+
       toast.success(`Pasikartojanti išlaida "${expense.name}" pridėta.`);
       return data as RecurringExpense;
     } catch (error) {
@@ -139,12 +139,12 @@ export const useRecurringExpenses = (userId?: string) => {
 
   const deleteRecurringExpense = async (id: string) => {
     const targetUserId = await getTargetUserId();
-    
+
     if (!targetUserId) {
       toast.error("Nepavyko ištrinti pasikartojančios išlaidos - nėra vartotojo");
       return false;
     }
-    
+
     // Optimistically update UI
     setRecurringExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== id));
 
@@ -162,7 +162,7 @@ export const useRecurringExpenses = (userId?: string) => {
         console.error(error);
         return false;
       }
-      
+
       toast.success("Pasikartojanti išlaida sėkmingai ištrinta.");
       return true;
     } catch (error) {

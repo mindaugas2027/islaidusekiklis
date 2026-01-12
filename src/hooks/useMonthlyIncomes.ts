@@ -8,9 +8,9 @@ export const useMonthlyIncomes = (userId?: string) => {
   const [loading, setLoading] = useState(true);
 
   const getTargetUserId = useCallback(async () => {
-    // If userId is provided, use it (for impersonation)
+    // If userId is provided (for impersonation), use it
     if (userId) return userId;
-    
+
     // Otherwise get current user
     const { data: { user } } = await supabase.auth.getUser();
     return user?.id;
@@ -19,7 +19,7 @@ export const useMonthlyIncomes = (userId?: string) => {
   const refreshMonthlyIncomes = useCallback(async () => {
     setLoading(true);
     const targetUserId = await getTargetUserId();
-    
+
     if (!targetUserId) {
       setMonthlyIncomes({});
       setDefaultMonthlyIncome(0);
@@ -40,14 +40,14 @@ export const useMonthlyIncomes = (userId?: string) => {
       if (defaultIncome) {
         setDefaultMonthlyIncome(defaultIncome.income);
       }
-      
+
       const monthIncomes = data
         .filter(item => item.month_year !== 'default')
         .reduce((acc, item) => {
           acc[item.month_year] = item.income;
           return acc;
         }, {} as { [key: string]: number });
-      
+
       setMonthlyIncomes(monthIncomes);
     }
     setLoading(false);
@@ -55,12 +55,12 @@ export const useMonthlyIncomes = (userId?: string) => {
 
   useEffect(() => {
     refreshMonthlyIncomes();
-    
+
     const setupSubscription = async () => {
       const targetUserId = await getTargetUserId();
-      
+
       if (!targetUserId) return;
-      
+
       const channel = supabase
         .channel('monthly-incomes-changes')
         .on(
@@ -85,25 +85,25 @@ export const useMonthlyIncomes = (userId?: string) => {
           }
         )
         .subscribe();
-      
+
       return () => {
         supabase.removeChannel(channel);
       };
     };
-    
+
     setupSubscription();
   }, [refreshMonthlyIncomes, getTargetUserId]);
 
   const saveIncome = async (income: number, type: 'default' | 'month', monthYear?: string) => {
     const targetUserId = await getTargetUserId();
-    
+
     if (!targetUserId) {
       toast.error("Nepavyko išsaugoti pajamų - nėra vartotojo");
       return false;
     }
 
     const month_year = type === 'default' ? 'default' : monthYear;
-    
+
     if (!month_year) {
       toast.error("Nepavyko išsaugoti pajamų - nenurodytas mėnuo");
       return false;
@@ -123,14 +123,14 @@ export const useMonthlyIncomes = (userId?: string) => {
         console.error(deleteError);
         return false;
       }
-      
+
       // Optimistically update UI
       setMonthlyIncomes(prev => {
         const newIncomes = {...prev};
         delete newIncomes[month_year];
         return newIncomes;
       });
-      
+
       toast.success(`Mėnesio ${monthYear} pajamos pašalintos. Bus naudojamos numatytosios pajamos.`);
       return true;
     }
@@ -152,7 +152,7 @@ export const useMonthlyIncomes = (userId?: string) => {
       } else if (monthYear) {
         setMonthlyIncomes(prev => ({ ...prev, [monthYear]: income }));
       }
-      
+
       if (type === 'default') {
         toast.success("Numatytosios mėnesio pajamos atnaujintos!");
       } else if (monthYear) {
@@ -180,7 +180,7 @@ export const useMonthlyIncomes = (userId?: string) => {
     } else if (monthYear) {
       setMonthlyIncomes(prev => ({ ...prev, [monthYear]: income }));
     }
-    
+
     if (type === 'default') {
       toast.success("Numatytosios mėnesio pajamos atnaujintos!");
     } else if (monthYear) {

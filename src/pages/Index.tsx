@@ -57,10 +57,13 @@ const Index = () => {
     return null;
   }, []);
 
-  const { expenses, loading: expensesLoading, addExpense, deleteExpense } = useExpenses(impersonatedUser?.id);
-  const { categories, loading: categoriesLoading, addCategory, deleteCategory } = useCategories(impersonatedUser?.id);
-  const { monthlyIncomes, defaultMonthlyIncome, saveIncome } = useMonthlyIncomes(impersonatedUser?.id);
-  const { recurringExpenses, addRecurringExpense, deleteRecurringExpense } = useRecurringExpenses(impersonatedUser?.id);
+  // Get the impersonated user ID if available
+  const impersonatedUserId = impersonatedUser?.id;
+
+  const { expenses, loading: expensesLoading, addExpense, deleteExpense } = useExpenses(impersonatedUserId);
+  const { categories, loading: categoriesLoading, addCategory, deleteCategory } = useCategories(impersonatedUserId);
+  const { monthlyIncomes, defaultMonthlyIncome, saveIncome } = useMonthlyIncomes(impersonatedUserId);
+  const { recurringExpenses, addRecurringExpense, deleteRecurringExpense } = useRecurringExpenses(impersonatedUserId);
 
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
   const currentYear = String(new Date().getFullYear());

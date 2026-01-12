@@ -7,7 +7,7 @@ export const useCategories = (userId?: string) => {
   const [loading, setLoading] = useState(true);
 
   const getTargetUserId = useCallback(async () => {
-    // If userId is provided, use it (for impersonation)
+    // If userId is provided (for impersonation), use it
     if (userId) return userId;
 
     // Otherwise get current user
