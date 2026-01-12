@@ -49,18 +49,14 @@ const AdminDashboard = () => {
     setLoading(true);
     try {
       console.log("Attempting to fetch users via function...");
-      
       // Use the secure function instead of admin API
       const { data, error } = await supabase.rpc('get_all_users');
-      
       if (error) {
         console.error("Function error:", error);
         toast.error(`Funkcijos klaida: ${error.message}`);
         throw error;
       }
-      
       console.log("Users fetched:", data?.length || 0);
-      
       // Transform the data to match our interface
       const transformedUsers = data.map((user: any) => ({
         id: user.id,
@@ -69,7 +65,6 @@ const AdminDashboard = () => {
         email: user.email,
         created_at: user.created_at
       }));
-      
       console.log("Transformed users:", transformedUsers.length);
       setUsers(transformedUsers);
       toast.success(`Sėkmingai įkelta ${transformedUsers.length} vartotojų`);
@@ -84,10 +79,72 @@ const AdminDashboard = () => {
   };
 
   const impersonateUser = async (userId: string) => {
-    toast.info("Funkcionalumas dar neįgyvendintas", {
-      description: "Vartotojo peržiūros režimas bus įgyvendintas vėliau"
-    });
+    try {
+      // Store the admin session in localStorage
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        localStorage.setItem('admin_session', JSON.stringify(session));
+      }
+      
+      // Get the user's data
+      const { data: userData, error: userError } = await supabase.rpc('get_user_by_id', { user_id: userId });
+      
+      if (userError) {
+        toast.error(`Nepavyko gauti vartotojo duomenų: ${userError.message}`);
+        return;
+      }
+      
+      if (!userData || userData.length === 0) {
+        toast.error("Vartotojas nerastas");
+        return;
+      }
+      
+      // Store impersonation info
+      localStorage.setItem('impersonating_user', JSON.stringify(userData[0]));
+      toast.success(`Peržiūrite kaip ${userData[0].email}`);
+      navigate("/");
+    } catch (error: any) {
+      console.error("Error impersonating user:", error);
+      toast.error("Nepavyko peržiūrėti vartotojo");
+    }
   };
+
+  const stopImpersonation = async () => {
+    try {
+      // Get the admin session from localStorage
+      const adminSessionStr = localStorage.getItem('admin_session');
+      if (adminSessionStr) {
+        const adminSession = JSON.parse(adminSessionStr);
+        // Restore admin session
+        await supabase.auth.setSession({
+          access_token: adminSession.access_token,
+          refresh_token: adminSession.refresh_token
+        });
+        // Clear impersonation data
+        localStorage.removeItem('admin_session');
+        localStorage.removeItem('impersonating_user');
+        toast.success("Grįžta į administratoriaus paskyrą");
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Error stopping impersonation:", error);
+      toast.error("Nepavyko grįžti į administratoriaus paskyrą");
+    }
+  };
+
+  // Check if we're impersonating a user
+  useEffect(() => {
+    const impersonatingUserStr = localStorage.getItem('impersonating_user');
+    if (impersonatingUserStr) {
+      const impersonatingUser = JSON.parse(impersonatingUserStr);
+      toast.info(`Peržiūrite kaip ${impersonatingUser.email}`, {
+        action: {
+          label: "Baigti peržiūrą",
+          onClick: stopImpersonation
+        }
+      });
+    }
+  }, []);
 
   if (loading && !isAdmin) {
     return (
@@ -110,7 +167,10 @@ const AdminDashboard = () => {
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <h1 className="text-2xl md:text-3xl font-bold">Administratoriaus skydelis</h1>
-          <Button onClick={() => navigate("/")}>Grįžti į pagrindinį</Button>
+          <div className="flex gap-2">
+            <Button onClick={fetchUsers} variant="outline">Atnaujinti</Button>
+            <Button onClick={() => navigate("/")}>Grįžti į pagrindinį</Button>
+          </div>
         </div>
         <Card>
           <CardHeader>
@@ -148,8 +208,7 @@ const AdminDashboard = () => {
                         <TableCell>
                           <div className="flex gap-2">
                             <Button variant="outline" size="sm" onClick={() => impersonateUser(user.id)}>
-                              <Eye className="h-4 w-4 mr-1" />
-                              Peržiūrėti
+                              <Eye className="h-4 w-4 mr-1" /> Peržiūrėti
                             </Button>
                           </div>
                         </TableCell>
