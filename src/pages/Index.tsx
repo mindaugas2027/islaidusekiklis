@@ -16,8 +16,16 @@ import { useMonthlyIncomes } from "@/hooks/useMonthlyIncomes";
 import { useRecurringExpenses } from "@/hooks/useRecurringExpenses";
 
 const DEFAULT_CATEGORIES = [
-  "Maistas", "Kuras", "Pramogos", "Transportas", "Būstas", 
-  "Komunalinės paslaugos", "Sveikata", "Mokslas", "Apranga", "Kita"
+  "Maistas",
+  "Kuras",
+  "Pramogos",
+  "Transportas",
+  "Būstas",
+  "Komunalinės paslaugos",
+  "Sveikata",
+  "Mokslas",
+  "Apranga",
+  "Kita"
 ];
 
 const months = [
@@ -36,10 +44,23 @@ const months = [
 ];
 
 const Index = () => {
-  const { expenses, loading: expensesLoading, addExpense, deleteExpense } = useExpenses();
-  const { categories, loading: categoriesLoading, addCategory, deleteCategory } = useCategories();
-  const { monthlyIncomes, defaultMonthlyIncome, saveIncome } = useMonthlyIncomes();
-  const { recurringExpenses, addRecurringExpense, deleteRecurringExpense } = useRecurringExpenses();
+  // Check if we're impersonating a user
+  const impersonatedUser = useMemo(() => {
+    const impersonatingUserStr = localStorage.getItem('impersonating_user');
+    if (impersonatingUserStr) {
+      try {
+        return JSON.parse(impersonatingUserStr);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }, []);
+
+  const { expenses, loading: expensesLoading, addExpense, deleteExpense } = useExpenses(impersonatedUser?.id);
+  const { categories, loading: categoriesLoading, addCategory, deleteCategory } = useCategories(impersonatedUser?.id);
+  const { monthlyIncomes, defaultMonthlyIncome, saveIncome } = useMonthlyIncomes(impersonatedUser?.id);
+  const { recurringExpenses, addRecurringExpense, deleteRecurringExpense } = useRecurringExpenses(impersonatedUser?.id);
 
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
   const currentYear = String(new Date().getFullYear());
@@ -86,7 +107,10 @@ const Index = () => {
           // Use correct column name
           const tempDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, recExpense.day_of_month);
           const actualDay = Math.min(recExpense.day_of_month, lastDayOfMonth(tempDate).getDate());
-          const expenseDate = format(new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, actualDay), 'yyyy-MM-dd');
+          const expenseDate = format(
+            new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, actualDay),
+            'yyyy-MM-dd'
+          );
           
           recurringExpensesForSelectedMonthYear.push({
             id: `RECURRING-${recExpense.id}-${expenseDate}`, // Unique ID for this instance
@@ -169,7 +193,6 @@ const Index = () => {
   }, [filteredExpenses]);
 
   const selectedMonthYear = `${selectedYear}-${selectedMonth}`;
-  
   // Fixed logic: Use default income when monthly income is not set OR when it's 0
   const currentMonthIncome = monthlyIncomes[selectedMonthYear] !== undefined && monthlyIncomes[selectedMonthYear] !== null 
     ? monthlyIncomes[selectedMonthYear] 
@@ -198,7 +221,7 @@ const Index = () => {
     const previousMonthIncome = monthlyIncomes[prevMonthYear] !== undefined && monthlyIncomes[prevMonthYear] !== null 
       ? monthlyIncomes[prevMonthYear] 
       : defaultMonthlyIncome;
-      
+    
     return previousMonthIncome - totalExpensesForPreviousMonth;
   }, [expenses, monthlyIncomes, defaultMonthlyIncome, selectedMonth, selectedYear]);
 
@@ -231,9 +254,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground p-2 sm:p-4 md:p-6 lg:p-8">
+      {impersonatedUser && (
+        <div className="fixed top-4 right-4 z-50 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded">
+          <p className="font-bold">Peržiūrite kaip: {impersonatedUser.email || impersonatedUser.id}</p>
+        </div>
+      )}
+      
       <Sidebar 
-        categories={categories}
-        onAddCategory={handleAddCategory}
+        categories={categories} 
+        onAddCategory={handleAddCategory} 
         onDeleteCategory={handleDeleteCategory}
         monthlyIncomes={monthlyIncomes}
         defaultMonthlyIncome={defaultMonthlyIncome}
@@ -272,14 +301,8 @@ const Index = () => {
             selectedMonth={selectedMonth} 
             selectedYear={selectedYear} 
           />
-          <MonthlyLineChart 
-            monthlyData={monthlyExpenseTotals} 
-            selectedYear={selectedYear} 
-          />
-          <ExpenseList 
-            expenses={filteredExpenses} 
-            onDeleteExpense={handleDeleteExpense} 
-          />
+          <MonthlyLineChart monthlyData={monthlyExpenseTotals} selectedYear={selectedYear} />
+          <ExpenseList expenses={filteredExpenses} onDeleteExpense={handleDeleteExpense} />
         </div>
       </div>
     </div>

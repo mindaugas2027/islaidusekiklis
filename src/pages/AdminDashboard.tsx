@@ -50,15 +50,18 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     if (!isAdmin) return;
     setLoading(true);
+    
     try {
       console.log("Attempting to fetch users via function...");
       // Use the secure function instead of admin API
       const { data, error } = await supabase.rpc('get_all_users');
+      
       if (error) {
         console.error("Function error:", error);
         toast.error(`Funkcijos klaida: ${error.message}`);
         throw error;
       }
+      
       console.log("Users fetched:", data?.length || 0);
       // Transform the data to match our interface
       const transformedUsers = data.map((user: any) => ({
@@ -68,6 +71,7 @@ const AdminDashboard = () => {
         email: user.email,
         created_at: user.created_at
       }));
+      
       console.log("Transformed users:", transformedUsers.length);
       setUsers(transformedUsers);
       toast.success(`Sėkmingai įkelta ${transformedUsers.length} vartotojų`);
@@ -99,7 +103,7 @@ const AdminDashboard = () => {
       // Set a flag to indicate we're impersonating
       localStorage.setItem('is_impersonating', 'true');
       
-      toast.success(`Peržiūrite kaip ${userEmail || userId}`);
+      toast.success(`Peržiūrate kaip ${userEmail || userId}`);
       navigate("/");
     } catch (error: any) {
       console.error("Error impersonating user:", error);
@@ -118,10 +122,12 @@ const AdminDashboard = () => {
           access_token: adminSession.access_token,
           refresh_token: adminSession.refresh_token
         });
+        
         // Clear impersonation data
         localStorage.removeItem('admin_session');
         localStorage.removeItem('impersonating_user');
         localStorage.removeItem('is_impersonating');
+        
         toast.success("Grįžta į administratoriaus paskyrą");
         window.location.reload();
       }
@@ -136,7 +142,7 @@ const AdminDashboard = () => {
     const impersonatingUserStr = localStorage.getItem('impersonating_user');
     if (impersonatingUserStr) {
       const impersonatingUser = JSON.parse(impersonatingUserStr);
-      toast.info(`Peržiūrite kaip ${impersonatingUser.email || impersonatingUser.id}`, {
+      toast.info(`Peržiūrate kaip ${impersonatingUser.email || impersonatingUser.id}`, {
         action: {
           label: "Baigti peržiūrą",
           onClick: stopImpersonation
@@ -171,6 +177,7 @@ const AdminDashboard = () => {
             <Button onClick={() => navigate("/")}>Grįžti į pagrindinį</Button>
           </div>
         </div>
+        
         <Card>
           <CardHeader>
             <CardTitle className="text-xl font-semibold">Visi vartotojai ({users.length})</CardTitle>
@@ -207,7 +214,8 @@ const AdminDashboard = () => {
                         <TableCell>
                           <div className="flex gap-2">
                             <Button variant="outline" size="sm" onClick={() => impersonateUser(user.id, user.email)}>
-                              <Eye className="h-4 w-4 mr-1" /> Peržiūrėti
+                              <Eye className="h-4 w-4 mr-1" />
+                              Peržiūrėti
                             </Button>
                           </div>
                         </TableCell>
