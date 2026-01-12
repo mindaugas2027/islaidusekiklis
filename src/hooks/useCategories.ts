@@ -9,7 +9,7 @@ export const useCategories = (userId?: string) => {
   const getTargetUserId = useCallback(async () => {
     // If userId is provided, use it (for impersonation)
     if (userId) return userId;
-    
+
     // Otherwise get current user
     const { data: { user } } = await supabase.auth.getUser();
     return user?.id;
@@ -18,7 +18,7 @@ export const useCategories = (userId?: string) => {
   const refreshCategories = useCallback(async () => {
     setLoading(true);
     const targetUserId = await getTargetUserId();
-    
+
     if (!targetUserId) {
       setCategories([]);
       setLoading(false);
@@ -35,19 +35,21 @@ export const useCategories = (userId?: string) => {
       toast.error("Nepavyko įkelti kategorijų");
       console.error(error);
     } else {
-      setCategories(data.map((item) => item.name));
+      // Ensure categories are unique by using Set
+      const uniqueCategories = Array.from(new Set(data.map((item) => item.name)));
+      setCategories(uniqueCategories);
     }
     setLoading(false);
   }, [getTargetUserId]);
 
   useEffect(() => {
     refreshCategories();
-    
+
     const setupSubscription = async () => {
       const targetUserId = await getTargetUserId();
-      
+
       if (!targetUserId) return;
-      
+
       const channel = supabase
         .channel('categories-changes')
         .on(
@@ -65,35 +67,42 @@ export const useCategories = (userId?: string) => {
           }
         )
         .subscribe();
-      
+
       return () => {
         supabase.removeChannel(channel);
       };
     };
-    
+
     setupSubscription();
   }, [refreshCategories, getTargetUserId]);
 
   const addCategory = async (name: string) => {
     const targetUserId = await getTargetUserId();
-    
+
     if (!targetUserId) {
       toast.error("Nepavyko pridėti kategorijos - nėra vartotojo");
       return false;
     }
-    
+
+    // Check if category already exists (case-insensitive)
+    const trimmedName = name.trim();
+    if (categories.some(cat => cat.toLowerCase() === trimmedName.toLowerCase())) {
+      toast.error(`Kategorija "${trimmedName}" jau egzistuoja.`);
+      return false;
+    }
+
     // Optimistically update UI
-    setCategories(prevCategories => [...prevCategories, name].sort());
+    setCategories(prevCategories => [...prevCategories, trimmedName].sort());
 
     try {
       const { error } = await supabase
         .from('categories')
-        .insert([{ name, user_id: targetUserId }]);
+        .insert([{ name: trimmedName, user_id: targetUserId }]);
 
       if (error) {
         // Revert optimistic update on error
-        setCategories(prevCategories => prevCategories.filter(cat => cat !== name));
-        
+        setCategories(prevCategories => prevCategories.filter(cat => cat !== trimmedName));
+
         if (error.code === '23505') { // Unique violation
           toast.error("Tokia kategorija jau egzistuoja.");
         } else {
@@ -102,12 +111,12 @@ export const useCategories = (userId?: string) => {
         }
         return false;
       }
-      
-      toast.success(`Kategorija "${name}" pridėta.`);
+
+      toast.success(`Kategorija "${trimmedName}" pridėta.`);
       return true;
     } catch (error) {
       // Revert optimistic update on error
-      setCategories(prevCategories => prevCategories.filter(cat => cat !== name));
+      setCategories(prevCategories => prevCategories.filter(cat => cat !== trimmedName));
       toast.error("Nepavyko pridėti kategorijos");
       console.error(error);
       return false;
@@ -116,12 +125,12 @@ export const useCategories = (userId?: string) => {
 
   const deleteCategory = async (name: string) => {
     const targetUserId = await getTargetUserId();
-    
+
     if (!targetUserId) {
       toast.error("Nepavyko ištrinti kategorijos - nėra vartotojo");
       return false;
     }
-    
+
     // Optimistically update UI
     setCategories(prevCategories => prevCategories.filter(cat => cat !== name));
 
@@ -139,7 +148,7 @@ export const useCategories = (userId?: string) => {
         console.error(error);
         return false;
       }
-      
+
       toast.success(`Kategorija "${name}" ištrinta.`);
       return true;
     } catch (error) {
