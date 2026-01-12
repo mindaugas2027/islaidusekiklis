@@ -130,71 +130,24 @@ const AdminDashboard = () => {
   const deleteUser = async (userId: string) => {
     try {
       setDeletingUserId(userId);
-      
-      // Delete user data in the correct order to respect foreign key constraints
-      // 1. Delete recurring expenses first (no dependencies)
-      const { error: recurringExpensesError } = await supabase
-        .from('recurring_expenses')
-        .delete()
-        .eq('user_id', userId);
-        
-      if (recurringExpensesError) {
-        console.error("Error deleting recurring expenses:", recurringExpensesError);
-        throw new Error("Nepavyko ištrinti pasikartojančių išlaidų");
+
+      // First, delete all user data using the database function
+      const { error: deleteDataError } = await supabase
+        .rpc('delete_user_and_data', { user_id_to_delete: userId });
+
+      if (deleteDataError) {
+        console.error("Error deleting user data:", deleteDataError);
+        throw new Error("Nepavyko ištrinti vartotojo duomenų");
       }
-      
-      // 2. Delete expenses (no dependencies)
-      const { error: expensesError } = await supabase
-        .from('expenses')
-        .delete()
-        .eq('user_id', userId);
-        
-      if (expensesError) {
-        console.error("Error deleting expenses:", expensesError);
-        throw new Error("Nepavyko ištrinti išlaidų");
-      }
-      
-      // 3. Delete categories (no dependencies)
-      const { error: categoriesError } = await supabase
-        .from('categories')
-        .delete()
-        .eq('user_id', userId);
-        
-      if (categoriesError) {
-        console.error("Error deleting categories:", categoriesError);
-        throw new Error("Nepavyko ištrinti kategorijų");
-      }
-      
-      // 4. Delete monthly incomes (no dependencies)
-      const { error: monthlyIncomesError } = await supabase
-        .from('monthly_incomes')
-        .delete()
-        .eq('user_id', userId);
-        
-      if (monthlyIncomesError) {
-        console.error("Error deleting monthly incomes:", monthlyIncomesError);
-        throw new Error("Nepavyko ištrinti mėnesio pajamų");
-      }
-      
-      // 5. Delete profiles (no dependencies)
-      const { error: profilesError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
-        
-      if (profilesError) {
-        console.error("Error deleting profiles:", profilesError);
-        throw new Error("Nepavyko ištrinti profilio");
-      }
-      
-      // 6. Delete the user from auth.users (this requires service role key)
+
+      // Then delete the user from auth.users
       const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-      
+
       if (authError) {
         console.error("Error deleting user from auth:", authError);
         throw new Error("Nepavyko ištrinti vartotojo iš sistemos");
       }
-      
+
       // Remove user from local state
       setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
       toast.success("Vartotojas sėkmingai ištrintas");
