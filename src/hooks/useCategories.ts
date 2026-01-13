@@ -2,25 +2,22 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const useCategories = (impersonatedUserIdFromProps?: string) => {
+export const useCategories = (userId?: string) => {
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const getEffectiveUserId = useCallback(async () => {
-    console.log("[useCategories] getEffectiveUserId called. impersonatedUserIdFromProps:", impersonatedUserIdFromProps);
-    if (impersonatedUserIdFromProps) {
-      console.log("[useCategories] Returning impersonatedUserIdFromProps:", impersonatedUserIdFromProps);
-      return impersonatedUserIdFromProps;
-    }
+  const getTargetUserId = useCallback(async () => {
+    // If userId is provided (for impersonation), use it
+    if (userId) return userId;
+
+    // Otherwise get current user
     const { data: { user } } = await supabase.auth.getUser();
-    console.log("[useCategories] No impersonated ID. Falling back to supabase.auth.getUser(). User ID:", user?.id);
     return user?.id;
-  }, [impersonatedUserIdFromProps]);
+  }, [userId]);
 
   const refreshCategories = useCallback(async () => {
     setLoading(true);
-    const targetUserId = await getEffectiveUserId();
-    console.log("[useCategories] refreshCategories using targetUserId:", targetUserId);
+    const targetUserId = await getTargetUserId();
 
     if (!targetUserId) {
       setCategories([]);
@@ -36,31 +33,29 @@ export const useCategories = (impersonatedUserIdFromProps?: string) => {
 
     if (error) {
       toast.error("Nepavyko įkelti kategorijų");
-      console.error("[useCategories] Error loading categories:", error);
+      console.error(error);
     } else {
+      // Ensure categories are unique by using Set
       const uniqueCategories = Array.from(new Set(data.map((item) => item.name)));
       setCategories(uniqueCategories);
-      console.log("[useCategories] Loaded categories for user:", targetUserId, uniqueCategories);
     }
     setLoading(false);
-  }, [getEffectiveUserId]);
+  }, [getTargetUserId]);
 
   useEffect(() => {
     refreshCategories();
 
     const setupSubscription = async () => {
-      const targetUserId = await getEffectiveUserId();
-      console.log("[useCategories] Setting up subscription for targetUserId:", targetUserId);
+      const targetUserId = await getTargetUserId();
 
       if (!targetUserId) return;
 
       const channel = supabase
-        .channel(`categories-changes-${targetUserId}`)
+        .channel('categories-changes')
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'categories', filter: `user_id=eq.${targetUserId}` },
           (payload) => {
-            console.log("[useCategories] Realtime INSERT event:", payload);
             refreshCategories();
           }
         )
@@ -68,52 +63,51 @@ export const useCategories = (impersonatedUserIdFromProps?: string) => {
           'postgres_changes',
           { event: 'DELETE', schema: 'public', table: 'categories', filter: `user_id=eq.${targetUserId}` },
           (payload) => {
-            console.log("[useCategories] Realtime DELETE event:", payload);
             refreshCategories();
           }
         )
         .subscribe();
 
       return () => {
-        console.log("[useCategories] Unsubscribing from channel:", `categories-changes-${targetUserId}`);
         supabase.removeChannel(channel);
       };
     };
 
     setupSubscription();
-  }, [refreshCategories, getEffectiveUserId]);
+  }, [refreshCategories, getTargetUserId]);
 
   const addCategory = async (name: string) => {
-    const targetUserId = await getEffectiveUserId();
-    console.log("[useCategories] addCategory using targetUserId:", targetUserId);
+    const targetUserId = await getTargetUserId();
 
     if (!targetUserId) {
       toast.error("Nepavyko pridėti kategorijos - nėra vartotojo");
       return false;
     }
 
+    // Check if category already exists (case-insensitive)
     const trimmedName = name.trim();
     if (categories.some(cat => cat.toLowerCase() === trimmedName.toLowerCase())) {
       toast.error(`Kategorija "${trimmedName}" jau egzistuoja.`);
       return false;
     }
 
+    // Optimistically update UI
     setCategories(prevCategories => [...prevCategories, trimmedName].sort());
 
     try {
-      console.log("[useCategories] Inserting category with user_id:", targetUserId, "Category name:", trimmedName);
       const { error } = await supabase
         .from('categories')
         .insert([{ name: trimmedName, user_id: targetUserId }]);
 
       if (error) {
+        // Revert optimistic update on error
         setCategories(prevCategories => prevCategories.filter(cat => cat !== trimmedName));
 
-        if (error.code === '23505') {
+        if (error.code === '23505') { // Unique violation
           toast.error("Tokia kategorija jau egzistuoja.");
         } else {
           toast.error("Nepavyko pridėti kategorijos");
-          console.error("[useCategories] Error adding category:", error);
+          console.error(error);
         }
         return false;
       }
@@ -121,26 +115,26 @@ export const useCategories = (impersonatedUserIdFromProps?: string) => {
       toast.success(`Kategorija "${trimmedName}" pridėta.`);
       return true;
     } catch (error) {
+      // Revert optimistic update on error
       setCategories(prevCategories => prevCategories.filter(cat => cat !== trimmedName));
       toast.error("Nepavyko pridėti kategorijos");
-      console.error("[useCategories] Unexpected error adding category:", error);
+      console.error(error);
       return false;
     }
   };
 
   const deleteCategory = async (name: string) => {
-    const targetUserId = await getEffectiveUserId();
-    console.log("[useCategories] deleteCategory using targetUserId:", targetUserId);
+    const targetUserId = await getTargetUserId();
 
     if (!targetUserId) {
       toast.error("Nepavyko ištrinti kategorijos - nėra vartotojo");
       return false;
     }
 
+    // Optimistically update UI
     setCategories(prevCategories => prevCategories.filter(cat => cat !== name));
 
     try {
-      console.log("[useCategories] Deleting category with name:", name, "for user_id:", targetUserId);
       const { error } = await supabase
         .from('categories')
         .delete()
@@ -148,18 +142,20 @@ export const useCategories = (impersonatedUserIdFromProps?: string) => {
         .eq('user_id', targetUserId);
 
       if (error) {
+        // Revert optimistic update on error
         refreshCategories();
         toast.error("Nepavyko ištrinti kategorijos");
-        console.error("[useCategories] Error deleting category:", error);
+        console.error(error);
         return false;
       }
 
       toast.success(`Kategorija "${name}" ištrinta.`);
       return true;
     } catch (error) {
+      // Revert optimistic update on error
       refreshCategories();
       toast.error("Nepavyko ištrinti kategorijos");
-      console.error("[useCategories] Unexpected error deleting category:", error);
+      console.error(error);
       return false;
     }
   };

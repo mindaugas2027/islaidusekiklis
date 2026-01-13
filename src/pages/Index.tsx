@@ -43,12 +43,20 @@ const months = [
   { value: "12", label: "Gruodis" },
 ];
 
-interface IndexProps {
-  impersonatedUserId?: string;
-}
+const Index = () => {
+  const impersonatedUser = useMemo(() => {
+    const impersonatingUserStr = localStorage.getItem('impersonating_user');
+    if (impersonatingUserStr) {
+      try {
+        return JSON.parse(impersonatingUserStr);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }, []);
 
-const Index: React.FC<IndexProps> = ({ impersonatedUserId }) => {
-  console.log("[Index] Received impersonatedUserId prop:", impersonatedUserId);
+  const impersonatedUserId = impersonatedUser?.id;
 
   const { expenses, loading: expensesLoading, addExpense, deleteExpense } = useExpenses(impersonatedUserId);
   const { categories, loading: categoriesLoading, addCategory, deleteCategory } = useCategories(impersonatedUserId);
@@ -68,35 +76,49 @@ const Index: React.FC<IndexProps> = ({ impersonatedUserId }) => {
     }
   }, [categoriesLoading, categories, addCategory]);
 
-  const allExpenses = useMemo(() => {
-    const generatedRecurringExpenses: Expense[] = [];
-    
-    recurringExpenses.forEach(recExpense => {
-      // Determine the last day of the selected month
-      const lastDayOfSelectedMonth = lastDayOfMonth(new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, 1)).getDate();
-      
-      // Generate recurring expense for the selected month/year if its day is valid for that month
-      if (recExpense.day_of_month <= lastDayOfSelectedMonth) {
-        const expenseDate = format(
-          new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, recExpense.day_of_month),
-          'yyyy-MM-dd'
-        );
+  useEffect(() => {
+    const generateAndMergeExpenses = () => {
+      const today = new Date();
+      const currentActualYear = today.getFullYear();
+      const currentActualMonth = String(today.getMonth() + 1).padStart(2, '0');
+      const currentActualDay = today.getDate();
 
-        generatedRecurringExpenses.push({
-          id: `RECURRING-${recExpense.id}-${expenseDate}`, // Unique ID for recurring expense instance
-          amount: recExpense.amount,
-          category: recExpense.category,
-          description: recExpense.name,
-          date: expenseDate,
-          user_id: impersonatedUserId, // Assign user_id for consistency
-        });
+      let maxDayToShow = 0;
+
+      if (parseInt(selectedYear) < currentActualYear ||
+          (parseInt(selectedYear) === currentActualYear && selectedMonth < currentActualMonth)) {
+        maxDayToShow = 31;
+      } else if (parseInt(selectedYear) === currentActualYear && selectedMonth === currentActualMonth) {
+        maxDayToShow = currentActualDay;
+      } else {
+        maxDayToShow = 0;
       }
-    });
 
-    // Merge fetched expenses with generated recurring expenses
-    const mergedExpenses = [...expenses, ...generatedRecurringExpenses];
-    return mergedExpenses;
-  }, [expenses, recurringExpenses, selectedMonth, selectedYear, impersonatedUserId]);
+      const recurringExpensesForSelectedMonthYear: Expense[] = [];
+      const currentMonthYearPrefix = `${selectedYear}-${selectedMonth}`;
+
+      recurringExpenses.forEach(recExpense => {
+        if (recExpense.day_of_month <= maxDayToShow) {
+          const tempDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, recExpense.day_of_month);
+          const actualDay = Math.min(recExpense.day_of_month, lastDayOfMonth(tempDate).getDate());
+          const expenseDate = format(
+            new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, actualDay),
+            'yyyy-MM-dd'
+          );
+
+          recurringExpensesForSelectedMonthYear.push({
+            id: `RECURRING-${recExpense.id}-${expenseDate}`,
+            amount: recExpense.amount,
+            category: recExpense.category,
+            description: recExpense.name,
+            date: expenseDate,
+          });
+        }
+      });
+    };
+
+    generateAndMergeExpenses();
+  }, [selectedMonth, selectedYear, recurringExpenses]);
 
   const handleAddExpense = async (newExpense: Omit<Expense, 'id'>) => {
     await addExpense(newExpense);
@@ -143,19 +165,19 @@ const Index: React.FC<IndexProps> = ({ impersonatedUserId }) => {
 
   const availableYears = useMemo(() => {
     const years = new Set<string>();
-    allExpenses.forEach(expense => years.add(new Date(expense.date).getFullYear().toString()));
+    expenses.forEach(expense => years.add(new Date(expense.date).getFullYear().toString()));
     years.add(String(new Date().getFullYear()));
     return Array.from(years).sort((a, b) => parseInt(b) - parseInt(a));
-  }, [allExpenses]);
+  }, [expenses]);
 
   const filteredExpenses = useMemo(() => {
-    return allExpenses.filter(expense => {
+    return expenses.filter(expense => {
       const expenseDate = new Date(expense.date);
       const expenseMonth = String(expenseDate.getMonth() + 1).padStart(2, '0');
       const expenseYear = String(expenseDate.getFullYear());
       return expenseMonth === selectedMonth && expenseYear === selectedYear;
     });
-  }, [allExpenses, selectedMonth, selectedYear]);
+  }, [expenses, selectedMonth, selectedYear]);
 
   const totalExpensesForSelectedMonth = useMemo(() => {
     return filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
@@ -178,7 +200,7 @@ const Index: React.FC<IndexProps> = ({ impersonatedUserId }) => {
     const prevMonthPadded = String(prevMonth).padStart(2, '0');
     const prevMonthYear = `${prevYear}-${prevMonthPadded}`;
 
-    const expensesForPreviousMonth = allExpenses.filter(expense => {
+    const expensesForPreviousMonth = expenses.filter(expense => {
       const expenseDate = new Date(expense.date);
       const expenseMonth = String(expenseDate.getMonth() + 1).padStart(2, '0');
       const expenseYear = String(expenseDate.getFullYear());
@@ -191,12 +213,12 @@ const Index: React.FC<IndexProps> = ({ impersonatedUserId }) => {
       : defaultMonthlyIncome;
 
     return previousMonthIncome - totalExpensesForPreviousMonth;
-  }, [allExpenses, monthlyIncomes, defaultMonthlyIncome, selectedMonth, selectedYear]);
+  }, [expenses, monthlyIncomes, defaultMonthlyIncome, selectedMonth, selectedYear]);
 
   const monthlyExpenseTotals = useMemo(() => {
     const monthlyTotals: { [key: string]: number } = {};
 
-    allExpenses.forEach(expense => {
+    expenses.forEach(expense => {
       const expenseDate = new Date(expense.date);
       const year = String(expenseDate.getFullYear());
       const month = String(expenseDate.getMonth() + 1).padStart(2, '0');
@@ -210,7 +232,7 @@ const Index: React.FC<IndexProps> = ({ impersonatedUserId }) => {
       name: m.label,
       total: parseFloat((monthlyTotals[m.value] || 0).toFixed(2)),
     }));
-  }, [allExpenses, selectedYear]);
+  }, [expenses, selectedYear]);
 
   if (expensesLoading || categoriesLoading) {
     return (

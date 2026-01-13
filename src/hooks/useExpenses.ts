@@ -3,25 +3,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { Expense } from "@/types/expense";
 import { toast } from "sonner";
 
-export const useExpenses = (impersonatedUserIdFromProps?: string) => {
+export const useExpenses = (userId?: string) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const getEffectiveUserId = useCallback(async () => {
-    console.log("[useExpenses] getEffectiveUserId called. impersonatedUserIdFromProps:", impersonatedUserIdFromProps);
-    if (impersonatedUserIdFromProps) {
-      console.log("[useExpenses] Returning impersonatedUserIdFromProps:", impersonatedUserIdFromProps);
-      return impersonatedUserIdFromProps;
-    }
+  const getTargetUserId = useCallback(async () => {
+    // If userId is provided, use it (for impersonation)
+    if (userId) return userId;
+    
+    // Otherwise get current user
     const { data: { user } } = await supabase.auth.getUser();
-    console.log("[useExpenses] No impersonated ID. Falling back to supabase.auth.getUser(). User ID:", user?.id);
     return user?.id;
-  }, [impersonatedUserIdFromProps]);
+  }, [userId]);
 
   const refreshExpenses = useCallback(async () => {
     setLoading(true);
-    const targetUserId = await getEffectiveUserId();
-    console.log("[useExpenses] refreshExpenses using targetUserId:", targetUserId);
+    const targetUserId = await getTargetUserId();
     
     if (!targetUserId) {
       setExpenses([]);
@@ -29,6 +26,7 @@ export const useExpenses = (impersonatedUserIdFromProps?: string) => {
       return;
     }
 
+    // Fetch expenses for the target user
     const { data, error } = await supabase
       .from('expenses')
       .select('*')
@@ -37,30 +35,28 @@ export const useExpenses = (impersonatedUserIdFromProps?: string) => {
 
     if (error) {
       toast.error("Nepavyko įkelti išlaidų");
-      console.error("[useExpenses] Error loading expenses:", error);
+      console.error(error);
     } else {
       setExpenses(data as Expense[]);
-      console.log("[useExpenses] Loaded expenses for user:", targetUserId, data);
     }
     setLoading(false);
-  }, [getEffectiveUserId]);
+  }, [getTargetUserId]);
 
   useEffect(() => {
     refreshExpenses();
     
+    // Set up real-time subscription for the target user
     const setupSubscription = async () => {
-      const targetUserId = await getEffectiveUserId();
-      console.log("[useExpenses] Setting up subscription for targetUserId:", targetUserId);
+      const targetUserId = await getTargetUserId();
       
       if (!targetUserId) return;
       
       const channel = supabase
-        .channel(`expenses-changes-${targetUserId}`) // Unique channel name per user
+        .channel('expenses-changes')
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'expenses', filter: `user_id=eq.${targetUserId}` },
           (payload) => {
-            console.log("[useExpenses] Realtime INSERT event:", payload);
             refreshExpenses();
           }
         )
@@ -68,7 +64,6 @@ export const useExpenses = (impersonatedUserIdFromProps?: string) => {
           'postgres_changes',
           { event: 'UPDATE', schema: 'public', table: 'expenses', filter: `user_id=eq.${targetUserId}` },
           (payload) => {
-            console.log("[useExpenses] Realtime UPDATE event:", payload);
             refreshExpenses();
           }
         )
@@ -76,30 +71,28 @@ export const useExpenses = (impersonatedUserIdFromProps?: string) => {
           'postgres_changes',
           { event: 'DELETE', schema: 'public', table: 'expenses', filter: `user_id=eq.${targetUserId}` },
           (payload) => {
-            console.log("[useExpenses] Realtime DELETE event:", payload);
             refreshExpenses();
           }
         )
         .subscribe();
       
       return () => {
-        console.log("[useExpenses] Unsubscribing from channel:", `expenses-changes-${targetUserId}`);
         supabase.removeChannel(channel);
       };
     };
     
     setupSubscription();
-  }, [refreshExpenses, getEffectiveUserId]);
+  }, [refreshExpenses, getTargetUserId]);
 
   const addExpense = async (expense: Omit<Expense, 'id'>) => {
-    const targetUserId = await getEffectiveUserId();
-    console.log("[useExpenses] addExpense using targetUserId:", targetUserId);
+    const targetUserId = await getTargetUserId();
     
     if (!targetUserId) {
       toast.error("Nepavyko pridėti išlaidos - nėra vartotojo");
       return null;
     }
     
+    // Optimistically update UI
     const tempId = `temp-${Date.now()}`;
     const tempExpense: Expense = {
       ...expense,
@@ -111,7 +104,6 @@ export const useExpenses = (impersonatedUserIdFromProps?: string) => {
     setExpenses(prevExpenses => [tempExpense, ...prevExpenses]);
 
     try {
-      console.log("[useExpenses] Inserting expense with user_id:", targetUserId, "Expense data:", expense);
       const { data, error } = await supabase
         .from('expenses')
         .insert([{ ...expense, user_id: targetUserId }])
@@ -119,12 +111,14 @@ export const useExpenses = (impersonatedUserIdFromProps?: string) => {
         .single();
 
       if (error) {
+        // Revert optimistic update on error
         setExpenses(prevExpenses => prevExpenses.filter(exp => exp.id !== tempId));
         toast.error("Nepavyko pridėti išlaidos");
-        console.error("[useExpenses] Error adding expense:", error);
+        console.error(error);
         return null;
       }
 
+      // Replace temporary expense with actual data from backend
       setExpenses(prevExpenses => {
         const withoutTemp = prevExpenses.filter(exp => exp.id !== tempId);
         return [data as Expense, ...withoutTemp];
@@ -133,52 +127,38 @@ export const useExpenses = (impersonatedUserIdFromProps?: string) => {
       toast.success("Išlaida sėkmingai pridėta!");
       return data as Expense;
     } catch (error) {
+      // Revert optimistic update on error
       setExpenses(prevExpenses => prevExpenses.filter(exp => exp.id !== tempId));
       toast.error("Nepavyko pridėti išlaidos");
-      console.error("[useExpenses] Unexpected error adding expense:", error);
+      console.error(error);
       return null;
     }
   };
 
   const deleteExpense = async (id: string) => {
-    const targetUserId = await getEffectiveUserId();
-    console.log("[useExpenses] deleteExpense using targetUserId:", targetUserId);
-
-    if (!targetUserId) {
-      toast.error("Nepavyko ištrinti išlaidos - nėra vartotojo");
-      return false;
-    }
-
+    // Optimistically update UI
     setExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== id));
 
-    try {
-      console.log("[useExpenses] Deleting expense with id:", id, "for user_id:", targetUserId);
-      const { error } = await supabase
-        .from('expenses')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', targetUserId); // Ensure RLS is respected
+    const { error } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', id);
 
-      if (error) {
-        refreshExpenses();
-        toast.error("Nepavyko ištrinti išlaidos");
-        console.error("[useExpenses] Error deleting expense:", error);
-        return false;
-      }
-      
-      toast.success("Išlaida sėkmingai ištrinta.");
-      return true;
-    } catch (error) {
+    if (error) {
+      // Revert optimistic update on error
       refreshExpenses();
       toast.error("Nepavyko ištrinti išlaidos");
-      console.error("[useExpenses] Unexpected error deleting expense:", error);
+      console.error(error);
       return false;
     }
+    
+    toast.success("Išlaida sėkmingai ištrinta.");
+    return true;
   };
 
+  // New function to get monthly total for a specific month
   const getMonthlyTotal = async (monthYear: string) => {
-    const targetUserId = await getEffectiveUserId();
-    console.log("[useExpenses] getMonthlyTotal using targetUserId:", targetUserId);
+    const targetUserId = await getTargetUserId();
     
     if (!targetUserId) return 0;
 
@@ -186,16 +166,16 @@ export const useExpenses = (impersonatedUserIdFromProps?: string) => {
       .rpc('calculate_monthly_total', { user_id: targetUserId, month_year: monthYear });
 
     if (error) {
-      console.error('[useExpenses] Error calculating monthly total:', error);
+      console.error('Error calculating monthly total:', error);
       return 0;
     }
     
     return data || 0;
   };
 
+  // New function to get category total for a specific month
   const getCategoryTotal = async (category: string, monthYear: string) => {
-    const targetUserId = await getEffectiveUserId();
-    console.log("[useExpenses] getCategoryTotal using targetUserId:", targetUserId);
+    const targetUserId = await getTargetUserId();
     
     if (!targetUserId) return 0;
 
@@ -203,7 +183,7 @@ export const useExpenses = (impersonatedUserIdFromProps?: string) => {
       .rpc('calculate_category_total', { user_id: targetUserId, category_name: category, month_year: monthYear });
 
     if (error) {
-      console.error('[useExpenses] Error calculating category total:', error);
+      console.error('Error calculating category total:', error);
       return 0;
     }
     
