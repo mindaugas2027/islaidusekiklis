@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
+import UserView from "./pages/UserView";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -27,11 +28,11 @@ const App = () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setLoading(false);
-
+      
       // Check if we're impersonating a user
       const impersonating = localStorage.getItem('is_impersonating') === 'true';
       setIsImpersonating(impersonating);
-
+      
       // Get impersonating user info
       const impersonatingUserStr = localStorage.getItem('impersonating_user');
       if (impersonatingUserStr) {
@@ -41,7 +42,7 @@ const App = () => {
           console.error("Error parsing impersonating user:", e);
         }
       }
-
+      
       // Check if current user is admin
       if (session?.user?.email === 'mindaugas@gmail.com') {
         setIsAdmin(true);
@@ -53,11 +54,11 @@ const App = () => {
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setLoading(false);
-
+      
       // Check if we're impersonating a user
       const impersonating = localStorage.getItem('is_impersonating') === 'true';
       setIsImpersonating(impersonating);
-
+      
       // Get impersonating user info
       const impersonatingUserStr = localStorage.getItem('impersonating_user');
       if (impersonatingUserStr) {
@@ -67,7 +68,7 @@ const App = () => {
           console.error("Error parsing impersonating user:", e);
         }
       }
-
+      
       // Check if current user is admin
       if (session?.user?.email === 'mindaugas@gmail.com') {
         setIsAdmin(true);
@@ -87,13 +88,11 @@ const App = () => {
       const adminSessionStr = localStorage.getItem('admin_session');
       if (adminSessionStr) {
         const adminSession = JSON.parse(adminSessionStr);
-
         // Restore admin session
         await supabase.auth.setSession({
           access_token: adminSession.access_token,
           refresh_token: adminSession.refresh_token
         });
-
         // Clear impersonation data
         localStorage.removeItem('admin_session');
         localStorage.removeItem('impersonating_user');
@@ -120,7 +119,6 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-
         {isImpersonating && impersonatingUser && isAdmin && (
           <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
             <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1">
@@ -133,11 +131,11 @@ const App = () => {
             </Button>
           </div>
         )}
-
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
             <Route path="/admin" element={session && isAdmin ? <AdminDashboard /> : <Navigate to="/login" />} />
+            <Route path="/user/:userId" element={session && isAdmin ? <UserView /> : <Navigate to="/login" />} />
             <Route path="/" element={session ? <Index /> : <Navigate to="/login" />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
