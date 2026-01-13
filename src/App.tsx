@@ -138,7 +138,7 @@ const App = () => {
           <Routes>
             <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
             <Route path="/admin" element={session && isAdmin ? <AdminDashboard /> : <Navigate to="/login" />} />
-            <Route path="/" element={session ? <Index /> : <Navigate to="/login" />} />
+            <Route path="/" element={session ? <Index impersonatedUserId={impersonatingUser?.id} /> : <Navigate to="/login" />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

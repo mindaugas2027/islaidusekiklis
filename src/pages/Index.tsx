@@ -43,25 +43,12 @@ const months = [
   { value: "12", label: "Gruodis" },
 ];
 
-const Index = () => {
-  const impersonatedUser = useMemo(() => {
-    const impersonatingUserStr = localStorage.getItem('impersonating_user');
-    if (impersonatingUserStr) {
-      try {
-        const parsed = JSON.parse(impersonatingUserStr);
-        console.log("[Index] Parsed impersonating user from localStorage:", parsed);
-        return parsed;
-      } catch (e) {
-        console.error("[Index] Error parsing impersonating user from localStorage:", e);
-        return null;
-      }
-    }
-    console.log("[Index] No impersonating user found in localStorage.");
-    return null;
-  }, []);
+interface IndexProps {
+  impersonatedUserId?: string;
+}
 
-  const impersonatedUserId = impersonatedUser?.id;
-  console.log("[Index] impersonatedUserId passed to hooks:", impersonatedUserId);
+const Index: React.FC<IndexProps> = ({ impersonatedUserId }) => {
+  console.log("[Index] Received impersonatedUserId prop:", impersonatedUserId);
 
   const { expenses, loading: expensesLoading, addExpense, deleteExpense } = useExpenses(impersonatedUserId);
   const { categories, loading: categoriesLoading, addCategory, deleteCategory } = useCategories(impersonatedUserId);
