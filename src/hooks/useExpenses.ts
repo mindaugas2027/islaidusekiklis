@@ -48,34 +48,48 @@ export const useExpenses = (userId?: string) => {
     // Set up real-time subscription for the target user
     const setupSubscription = async () => {
       const targetUserId = await getTargetUserId();
-      
       if (!targetUserId) return;
       
       const channel = supabase
         .channel('expenses-changes')
         .on(
           'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'expenses', filter: `user_id=eq.${targetUserId}` },
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'expenses',
+            filter: `user_id=eq.${targetUserId}`
+          },
           (payload) => {
             refreshExpenses();
           }
         )
         .on(
           'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'expenses', filter: `user_id=eq.${targetUserId}` },
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'expenses',
+            filter: `user_id=eq.${targetUserId}`
+          },
           (payload) => {
             refreshExpenses();
           }
         )
         .on(
           'postgres_changes',
-          { event: 'DELETE', schema: 'public', table: 'expenses', filter: `user_id=eq.${targetUserId}` },
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'expenses',
+            filter: `user_id=eq.${targetUserId}`
+          },
           (payload) => {
             refreshExpenses();
           }
         )
         .subscribe();
-      
+        
       return () => {
         supabase.removeChannel(channel);
       };
@@ -86,12 +100,11 @@ export const useExpenses = (userId?: string) => {
 
   const addExpense = async (expense: Omit<Expense, 'id'>) => {
     const targetUserId = await getTargetUserId();
-    
     if (!targetUserId) {
       toast.error("Nepavyko pridėti išlaidos - nėra vartotojo");
       return null;
     }
-    
+
     // Optimistically update UI
     const tempId = `temp-${Date.now()}`;
     const tempExpense: Expense = {
@@ -100,7 +113,6 @@ export const useExpenses = (userId?: string) => {
       user_id: targetUserId,
       created_at: new Date().toISOString()
     };
-    
     setExpenses(prevExpenses => [tempExpense, ...prevExpenses]);
 
     try {
@@ -159,12 +171,14 @@ export const useExpenses = (userId?: string) => {
   // New function to get monthly total for a specific month
   const getMonthlyTotal = async (monthYear: string) => {
     const targetUserId = await getTargetUserId();
-    
     if (!targetUserId) return 0;
-
+    
     const { data, error } = await supabase
-      .rpc('calculate_monthly_total', { user_id: targetUserId, month_year: monthYear });
-
+      .rpc('calculate_monthly_total', {
+        user_id: targetUserId,
+        month_year: monthYear
+      });
+      
     if (error) {
       console.error('Error calculating monthly total:', error);
       return 0;
@@ -176,12 +190,15 @@ export const useExpenses = (userId?: string) => {
   // New function to get category total for a specific month
   const getCategoryTotal = async (category: string, monthYear: string) => {
     const targetUserId = await getTargetUserId();
-    
     if (!targetUserId) return 0;
-
+    
     const { data, error } = await supabase
-      .rpc('calculate_category_total', { user_id: targetUserId, category_name: category, month_year: monthYear });
-
+      .rpc('calculate_category_total', {
+        user_id: targetUserId,
+        category_name: category,
+        month_year: monthYear
+      });
+      
     if (error) {
       console.error('Error calculating category total:', error);
       return 0;
