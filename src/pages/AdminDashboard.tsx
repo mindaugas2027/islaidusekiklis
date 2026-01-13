@@ -107,31 +107,29 @@ const AdminDashboard = () => {
         return;
       }
 
-      // Fetch all user profiles
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, email');
+      // Fetch all users to get email information
+      const { data: usersData, error: usersError } = await supabase.rpc('get_all_users');
       
-      if (profilesError) {
-        console.error("Error fetching profiles:", profilesError);
-        toast.error("Nepavyko įkelti vartotojų profilių");
+      if (usersError) {
+        console.error("Error fetching users:", usersError);
+        toast.error("Nepavyko įkelti vartotojų informacijos");
         return;
       }
 
-      // Create a map of user profiles for quick lookup
-      const profilesMap = profilesData.reduce((acc, profile) => {
-        acc[profile.id] = profile;
+      // Create a map of users for quick lookup
+      const usersMap = usersData.reduce((acc, user) => {
+        acc[user.id] = user;
         return acc;
       }, {} as Record<string, any>);
 
       // Transform expenses with user information
       const transformedExpenses = expensesData.map((expense: any) => {
-        const userProfile = profilesMap[expense.user_id];
+        const user = usersMap[expense.user_id];
         return {
           user_id: expense.user_id,
-          user_email: userProfile?.email || 'N/A',
-          user_name: userProfile ? 
-            `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.email : 
+          user_email: user?.email || 'N/A',
+          user_name: user ? 
+            `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email : 
             'N/A',
           expense: {
             id: expense.id,
