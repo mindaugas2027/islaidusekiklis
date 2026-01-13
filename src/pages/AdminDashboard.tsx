@@ -10,6 +10,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Expense } from "@/types/expense";
 import { format } from "date-fns";
+import { useExpenses } from "@/hooks/useExpenses";
+import { useCategories } from "@/hooks/useCategories";
+import { useMonthlyIncomes } from "@/hooks/useMonthlyIncomes";
+import { useRecurringExpenses } from "@/hooks/useRecurringExpenses";
 
 interface UserProfile {
   id: string;
@@ -100,7 +104,6 @@ const AdminDashboard = () => {
       const { data: expensesData, error: expensesError } = await supabase
         .from('expenses')
         .select('*');
-      
       if (expensesError) {
         console.error("Error fetching all expenses:", expensesError);
         toast.error("Nepavyko įkelti visų išlaidų");
@@ -109,7 +112,6 @@ const AdminDashboard = () => {
 
       // Fetch all users to get email information
       const { data: usersData, error: usersError } = await supabase.rpc('get_all_users');
-      
       if (usersError) {
         console.error("Error fetching users:", usersError);
         toast.error("Nepavyko įkelti vartotojų informacijos");
@@ -128,9 +130,7 @@ const AdminDashboard = () => {
         return {
           user_id: expense.user_id,
           user_email: user?.email || 'N/A',
-          user_name: user ? 
-            `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email : 
-            'N/A',
+          user_name: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email : 'N/A',
           expense: {
             id: expense.id,
             amount: expense.amount,
@@ -157,12 +157,15 @@ const AdminDashboard = () => {
       if (session) {
         localStorage.setItem('admin_session', JSON.stringify(session));
       }
+      
       const impersonationData = {
         id: userId,
         email: userEmail
       };
+      
       localStorage.setItem('impersonating_user', JSON.stringify(impersonationData));
       localStorage.setItem('is_impersonating', 'true');
+      
       toast.success(`Peržiūrate kaip ${userEmail || userId}. Visos duomenys bus rodomi kaip šio vartotojo.`);
       navigate("/");
     } catch (error: any) {
@@ -198,14 +201,17 @@ const AdminDashboard = () => {
       const { data, error } = await supabase.functions.invoke('delete_user', {
         body: { user_id: userId }
       });
+      
       if (error) {
         console.error("Error calling delete_user function:", error);
         throw new Error(error.message || "Nepavyko ištrinti vartotojo");
       }
+      
       if (data?.error) {
         console.error("Function returned error:", data.error);
         throw new Error(data.error);
       }
+      
       setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
       toast.success("Vartotojas sėkmingai ištrintas");
     } catch (error: any) {
@@ -219,25 +225,19 @@ const AdminDashboard = () => {
   const totalUsers = users.length;
   const totalExpensesCount = allExpenses.length;
   const totalExpensesAmount = allExpenses.reduce((sum, item) => sum + item.expense.amount, 0);
-
+  
   const expensesByUser = allExpenses.reduce((acc, item) => {
     if (!acc[item.user_id]) {
       const foundUser = users.find(u => u.id === item.user_id);
       acc[item.user_id] = {
-        user: foundUser || {
-          id: item.user_id,
-          email: item.user_email,
-          first_name: null,
-          last_name: null,
-          created_at: ''
-        },
+        user: foundUser || { id: item.user_id, email: item.user_email, first_name: null, last_name: null, created_at: '' },
         expenses: []
       };
     }
     acc[item.user_id].expenses.push(item.expense);
     return acc;
   }, {} as { [key: string]: { user: UserProfile, expenses: Expense[] } });
-
+  
   const expensesByCategory = allExpenses.reduce((acc, item) => {
     if (!acc[item.expense.category]) {
       acc[item.expense.category] = 0;
@@ -286,7 +286,7 @@ const AdminDashboard = () => {
             <Button onClick={() => navigate("/")}>Grįžti į pagrindinį</Button>
           </div>
         </div>
-
+        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -337,7 +337,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="categories">Kategorijos</TabsTrigger>
             <TabsTrigger value="by-user">Išlaidos pagal vartotojus</TabsTrigger>
           </TabsList>
-
+          
           <TabsContent value="users">
             <Card>
               <CardHeader>
@@ -374,7 +374,11 @@ const AdminDashboard = () => {
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-2">
-                                <Button variant="outline" size="sm" onClick={() => impersonateUser(user.id, user.email)}>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => navigate(`/user/${user.id}`)}
+                                >
                                   <Eye className="h-4 w-4 mr-1" />
                                   Peržiūrėti
                                 </Button>
@@ -393,7 +397,10 @@ const AdminDashboard = () => {
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                       <AlertDialogCancel>Atšaukti</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => deleteUser(user.id)} disabled={deletingUserId === user.id}>
+                                      <AlertDialogAction 
+                                        onClick={() => deleteUser(user.id)} 
+                                        disabled={deletingUserId === user.id}
+                                      >
                                         {deletingUserId === user.id ? "Trinama..." : "Patvirtinti"}
                                       </AlertDialogAction>
                                     </AlertDialogFooter>
@@ -410,7 +417,7 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
-
+          
           <TabsContent value="expenses">
             <Card>
               <CardHeader>
@@ -458,7 +465,7 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
-
+          
           <TabsContent value="categories">
             <Card>
               <CardHeader>
@@ -501,7 +508,7 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
-
+          
           <TabsContent value="by-user">
             <Card>
               <CardHeader>
