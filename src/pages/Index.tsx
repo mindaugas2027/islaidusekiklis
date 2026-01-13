@@ -261,15 +261,6 @@ const Index = () => {
           Išlaidų Skaičiuoklė
         </h1>
 
-        {impersonatedUser && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p className="text-blue-800 font-medium">
-              Peržiūrite vartotojo <span className="font-semibold">{impersonatedUser.email || impersonatedUser.id}</span> duomenis.
-              Visos operacijos (išlaidų pridėjimas, kategorijų valdymas ir t.t.) bus atliekamos šio vartotojo vardu.
-            </p>
-          </div>
-        )}
-
         <div className="mb-4 sm:mb-6 flex justify-center">
           <MonthYearNavigator
             selectedMonth={selectedMonth}

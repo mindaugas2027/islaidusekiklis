@@ -100,7 +100,7 @@ const AdminDashboard = () => {
       const { data: expensesData, error: expensesError } = await supabase
         .from('expenses')
         .select('*');
-
+      
       if (expensesError) {
         console.error("Error fetching all expenses:", expensesError);
         toast.error("Nepavyko įkelti visų išlaidų");
@@ -109,7 +109,7 @@ const AdminDashboard = () => {
 
       // Fetch all users to get email information
       const { data: usersData, error: usersError } = await supabase.rpc('get_all_users');
-
+      
       if (usersError) {
         console.error("Error fetching users:", usersError);
         toast.error("Nepavyko įkelti vartotojų informacijos");
@@ -128,8 +128,8 @@ const AdminDashboard = () => {
         return {
           user_id: expense.user_id,
           user_email: user?.email || 'N/A',
-          user_name: user ?
-            `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email :
+          user_name: user ? 
+            `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email : 
             'N/A',
           expense: {
             id: expense.id,
@@ -151,8 +151,24 @@ const AdminDashboard = () => {
     }
   };
 
-  const viewUser = (userId: string) => {
-    navigate(`/user/${userId}`);
+  const impersonateUser = async (userId: string, userEmail: string | null) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        localStorage.setItem('admin_session', JSON.stringify(session));
+      }
+      const impersonationData = {
+        id: userId,
+        email: userEmail
+      };
+      localStorage.setItem('impersonating_user', JSON.stringify(impersonationData));
+      localStorage.setItem('is_impersonating', 'true');
+      toast.success(`Peržiūrate kaip ${userEmail || userId}. Visos duomenys bus rodomi kaip šio vartotojo.`);
+      navigate("/");
+    } catch (error: any) {
+      console.error("Error impersonating user:", error);
+      toast.error("Nepavyko peržiūrėti vartotojo");
+    }
   };
 
   const stopImpersonation = async () => {
@@ -358,7 +374,7 @@ const AdminDashboard = () => {
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-2">
-                                <Button variant="outline" size="sm" onClick={() => viewUser(user.id)}>
+                                <Button variant="outline" size="sm" onClick={() => impersonateUser(user.id, user.email)}>
                                   <Eye className="h-4 w-4 mr-1" />
                                   Peržiūrėti
                                 </Button>
