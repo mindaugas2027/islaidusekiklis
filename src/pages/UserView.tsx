@@ -8,54 +8,49 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Calendar, Euro, Tag, List } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useExpenses } from "@/hooks/useExpenses";
+import { useCategories } from "@/hooks/useCategories";
+import { useMonthlyIncomes } from "@/hooks/useMonthlyIncomes";
+import { useRecurringExpenses } from "@/hooks/useRecurringExpenses";
+import ExpenseChart from "@/components/ExpenseChart";
+import IncomeTracker from "@/components/IncomeTracker";
+import ExpenseList from "@/components/ExpenseList";
+import MonthlyLineChart from "@/components/MonthlyLineChart";
+import MonthYearNavigator from "@/components/MonthYearNavigator";
 
-interface UserProfile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  email: string | null;
-  created_at: string;
-}
-
-interface Expense {
-  id: string;
-  amount: number;
-  category: string;
-  description: string;
-  date: string;
-  created_at: string;
-}
-
-interface Category {
-  name: string;
-}
-
-interface MonthlyIncome {
-  month_year: string;
-  income: number;
-}
-
-interface RecurringExpense {
-  id: string;
-  name: string;
-  amount: number;
-  category: string;
-  day_of_month: number;
-}
+const months = [
+  { value: "01", label: "Sausis" },
+  { value: "02", label: "Vasaris" },
+  { value: "03", label: "Kovas" },
+  { value: "04", label: "Balandis" },
+  { value: "05", label: "Gegužė" },
+  { value: "06", label: "Birželis" },
+  { value: "07", label: "Liepa" },
+  { value: "08", label: "Rugpjūtis" },
+  { value: "09", label: "Rugsėjis" },
+  { value: "10", label: "Spalis" },
+  { value: "11", label: "Lapkritis" },
+  { value: "12", label: "Gruodis" },
+];
 
 const UserView = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [monthlyIncomes, setMonthlyIncomes] = useState<MonthlyIncome[]>([]);
-  const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<string>(String(new Date().getMonth() + 1).padStart(2, '0'));
+  const [selectedYear, setSelectedYear] = useState<string>(String(new Date().getFullYear()));
+  
+  // Use the same hooks as regular user view but with impersonated user ID
+  const { expenses, loading: expensesLoading, deleteExpense } = useExpenses(userId);
+  const { categories, loading: categoriesLoading } = useCategories(userId);
+  const { monthlyIncomes, defaultMonthlyIncome } = useMonthlyIncomes(userId);
+  const { recurringExpenses, loading: recurringLoading } = useRecurringExpenses(userId);
+  
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     checkAdminStatus();
+    fetchUserEmail();
   }, []);
 
   const checkAdminStatus = async () => {
@@ -74,115 +69,69 @@ const UserView = () => {
     }
   };
 
-  useEffect(() => {
-    if (isAdmin && userId) {
-      fetchUserData();
-    }
-  }, [isAdmin, userId]);
-
-  const fetchUserData = async () => {
+  const fetchUserEmail = async () => {
     if (!userId) return;
     
-    setLoading(true);
     try {
-      // Fetch user profile
-      const { data: userData, error: userError } = await supabase.rpc('get_user_by_id', { user_id: userId });
-      if (userError) {
-        console.error("Error fetching user:", userError);
-        toast.error("Nepavyko įkelti vartotojo informacijos");
+      const { data, error } = await supabase.rpc('get_user_by_id', { user_id: userId });
+      if (error) {
+        console.error("Error fetching user email:", error);
         return;
       }
       
-      if (userData && userData.length > 0) {
-        const user = userData[0];
-        setUser({
-          id: user.id,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          email: user.email,
-          created_at: user.created_at
-        });
-      }
-
-      // Fetch user expenses
-      const { data: expensesData, error: expensesError } = await supabase
-        .from('expenses')
-        .select('*')
-        .eq('user_id', userId)
-        .order('date', { ascending: false });
-      
-      if (expensesError) {
-        console.error("Error fetching expenses:", expensesError);
-        toast.error("Nepavyko įkelti vartotojo išlaidų");
-      } else {
-        setExpenses(expensesData || []);
-      }
-
-      // Fetch user categories
-      const { data: categoriesData, error: categoriesError } = await supabase
-        .from('categories')
-        .select('name')
-        .eq('user_id', userId)
-        .order('name');
-      
-      if (categoriesError) {
-        console.error("Error fetching categories:", categoriesError);
-        toast.error("Nepavyko įkelti vartotojo kategorijų");
-      } else {
-        setCategories(categoriesData || []);
-      }
-
-      // Fetch user monthly incomes
-      const { data: incomesData, error: incomesError } = await supabase
-        .from('monthly_incomes')
-        .select('month_year, income')
-        .eq('user_id', userId)
-        .order('month_year');
-      
-      if (incomesError) {
-        console.error("Error fetching incomes:", incomesError);
-        toast.error("Nepavyko įkelti vartotojo pajamų");
-      } else {
-        setMonthlyIncomes(incomesData || []);
-      }
-
-      // Fetch user recurring expenses
-      const { data: recurringData, error: recurringError } = await supabase
-        .from('recurring_expenses')
-        .select('*')
-        .eq('user_id', userId)
-        .order('name');
-      
-      if (recurringError) {
-        console.error("Error fetching recurring expenses:", recurringError);
-        toast.error("Nepavyko įkelti vartotojo pasikartojančių išlaidų");
-      } else {
-        setRecurringExpenses(recurringData || []);
+      if (data && data.length > 0) {
+        setUserEmail(data[0].email);
       }
     } catch (error) {
-      console.error("Error fetching user data:", error);
-      toast.error("Nepavyko įkelti vartotojo duomenų");
-    } finally {
-      setLoading(false);
+      console.error("Error fetching user email:", error);
     }
   };
 
-  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const defaultIncome = monthlyIncomes.find(income => income.month_year === 'default')?.income || 0;
-  const specificIncomes = monthlyIncomes.filter(income => income.month_year !== 'default');
+  const handleDeleteExpense = async (id: string) => {
+    await deleteExpense(id);
+  };
 
-  if (loading) {
+  const filteredExpenses = expenses.filter(expense => {
+    const expenseDate = new Date(expense.date);
+    const expenseMonth = String(expenseDate.getMonth() + 1).padStart(2, '0');
+    const expenseYear = String(expenseDate.getFullYear());
+    return expenseMonth === selectedMonth && expenseYear === selectedYear;
+  });
+
+  const totalExpensesForSelectedMonth = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  
+  const selectedMonthYear = `${selectedYear}-${selectedMonth}`;
+  const currentMonthIncome = monthlyIncomes[selectedMonthYear] !== undefined && monthlyIncomes[selectedMonthYear] !== null 
+    ? monthlyIncomes[selectedMonthYear] 
+    : defaultMonthlyIncome;
+
+  const monthlyExpenseTotals = months.map(m => {
+    const monthlyTotal = expenses
+      .filter(expense => {
+        const expenseDate = new Date(expense.date);
+        const expenseYear = String(expenseDate.getFullYear());
+        return expenseYear === selectedYear && String(expenseDate.getMonth() + 1).padStart(2, '0') === m.value;
+      })
+      .reduce((sum, expense) => sum + expense.amount, 0);
+    
+    return {
+      name: m.label,
+      total: parseFloat(monthlyTotal.toFixed(2))
+    };
+  });
+
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <p>Įkeliama...</p>
+        <p>Neturite teisės peržiūrėti šio puslapio</p>
       </div>
     );
   }
 
-  if (!user) {
+  if (expensesLoading || categoriesLoading || recurringLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <p>Vartotojas nerastas</p>
+        <p>Įkeliama...</p>
       </div>
     );
   }
@@ -202,63 +151,28 @@ const UserView = () => {
             </Button>
             <h1 className="text-2xl md:text-3xl font-bold">Vartotojo peržiūra</h1>
             <p className="text-muted-foreground">
-              Peržiūrite kaip {user.email || user.id}
+              Peržiūrate kaip {userEmail || userId}
             </p>
           </div>
           <Button onClick={() => navigate("/")}>Grįžti į pagrindinį</Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Vardas</CardTitle>
-              <Tag className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {user.first_name || 'Nėra'} {user.last_name || ''}
-              </div>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Išlaidos</CardTitle>
-              <List className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{expenses.length}</div>
-              <p className="text-xs text-muted-foreground">Viso įrašų</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Išlaidų suma</CardTitle>
-              <Euro className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalExpenses.toFixed(2)} €</div>
-              <p className="text-xs text-muted-foreground">Viso išlaidų</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Registracija</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {user.created_at ? new Date(user.created_at).toLocaleDateString('lt-LT') : 'N/A'}
-              </div>
-              <p className="text-xs text-muted-foreground">Registracijos data</p>
-            </CardContent>
-          </Card>
+        <div className="mb-6 flex justify-center">
+          <MonthYearNavigator 
+            selectedMonth={selectedMonth} 
+            setSelectedMonth={setSelectedMonth}
+            selectedYear={selectedYear}
+            setSelectedYear={setSelectedYear}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl font-semibold">Kategorijos ({categories.length})</CardTitle>
+              <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                <Tag className="h-5 w-5" />
+                Kategorijos ({categories.length})
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {categories.length === 0 ? (
@@ -267,7 +181,7 @@ const UserView = () => {
                 <div className="flex flex-wrap gap-2">
                   {categories.map((category, index) => (
                     <Badge key={index} variant="secondary">
-                      {category.name}
+                      {category}
                     </Badge>
                   ))}
                 </div>
@@ -277,25 +191,30 @@ const UserView = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl font-semibold">Pajamos</CardTitle>
+              <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                <Euro className="h-5 w-5" />
+                Pajamos
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
                   <h3 className="font-medium mb-2">Numatytosios pajamos:</h3>
-                  <p className="text-2xl font-bold">{defaultIncome.toFixed(2)} €</p>
+                  <p className="text-2xl font-bold">{defaultMonthlyIncome.toFixed(2)} €</p>
                 </div>
                 
-                {specificIncomes.length > 0 && (
+                {Object.keys(monthlyIncomes).filter(key => key !== 'default').length > 0 && (
                   <div>
                     <h3 className="font-medium mb-2">Specifinės pajamos:</h3>
                     <div className="space-y-2">
-                      {specificIncomes.map((income, index) => (
-                        <div key={index} className="flex justify-between p-2 border rounded">
-                          <span>{income.month_year}</span>
-                          <span className="font-medium">{income.income.toFixed(2)} €</span>
-                        </div>
-                      ))}
+                      {Object.entries(monthlyIncomes)
+                        .filter(([key]) => key !== 'default')
+                        .map(([monthYear, income], index) => (
+                          <div key={index} className="flex justify-between p-2 border rounded">
+                            <span>{monthYear}</span>
+                            <span className="font-medium">{income.toFixed(2)} €</span>
+                          </div>
+                        ))}
                     </div>
                   </div>
                 )}
@@ -307,7 +226,10 @@ const UserView = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl font-semibold">Pasikartojančios išlaidos ({recurringExpenses.length})</CardTitle>
+              <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                <List className="h-5 w-5" />
+                Pasikartojančios išlaidos ({recurringExpenses.length})
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {recurringExpenses.length === 0 ? (
@@ -341,37 +263,52 @@ const UserView = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl font-semibold">Visos išlaidos ({expenses.length})</CardTitle>
+              <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Statistika
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              {expenses.length === 0 ? (
-                <p className="text-gray-500">Vartotojas neturi išlaidų</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Aprašymas</TableHead>
-                        <TableHead>Kategorija</TableHead>
-                        <TableHead className="text-right">Suma (€)</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {expenses.map((expense) => (
-                        <TableRow key={expense.id}>
-                          <TableCell>{format(new Date(expense.date), 'yyyy-MM-dd')}</TableCell>
-                          <TableCell>{expense.description}</TableCell>
-                          <TableCell>{expense.category}</TableCell>
-                          <TableCell className="text-right">{expense.amount.toFixed(2)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 border rounded">
+                    <p className="text-sm text-muted-foreground">Išlaidų įrašai</p>
+                    <p className="text-2xl font-bold">{expenses.length}</p>
+                  </div>
+                  <div className="p-4 border rounded">
+                    <p className="text-sm text-muted-foreground">Išlaidų suma</p>
+                    <p className="text-2xl font-bold">
+                      {expenses.reduce((sum, expense) => sum + expense.amount, 0).toFixed(2)} €
+                    </p>
+                  </div>
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="space-y-6">
+          <IncomeTracker 
+            monthlyIncome={currentMonthIncome} 
+            totalExpenses={totalExpensesForSelectedMonth} 
+            previousMonthCarryOver={0} 
+          />
+          
+          <ExpenseChart 
+            expenses={filteredExpenses} 
+            selectedMonth={selectedMonth} 
+            selectedYear={selectedYear} 
+          />
+          
+          <MonthlyLineChart 
+            monthlyData={monthlyExpenseTotals} 
+            selectedYear={selectedYear} 
+          />
+          
+          <ExpenseList 
+            expenses={filteredExpenses} 
+            onDeleteExpense={handleDeleteExpense} 
+          />
         </div>
       </div>
     </div>
