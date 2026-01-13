@@ -15,6 +15,11 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDeleteExpense }) 
   const [deletingIds, setDeletingIds] = React.useState<Set<string>>(new Set());
 
   const handleDelete = async (id: string) => {
+    if (id.startsWith("RECURRING-")) {
+      toast.info("Pasikartojančių išlaidų negalima ištrinti tiesiogiai iš sąrašo. Valdykite jas nustatymuose.");
+      return;
+    }
+
     // Immediately add to deleting set for UI feedback
     setDeletingIds(prev => new Set(prev).add(id));
     

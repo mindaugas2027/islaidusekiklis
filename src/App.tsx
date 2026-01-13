@@ -38,7 +38,7 @@ const App = () => {
         try {
           setImpersonatingUser(JSON.parse(impersonatingUserStr));
         } catch (e) {
-          console.error("Error parsing impersonating user:", e);
+          console.error("[App] Error parsing impersonating user:", e);
         }
       }
 
@@ -64,7 +64,7 @@ const App = () => {
         try {
           setImpersonatingUser(JSON.parse(impersonatingUserStr));
         } catch (e) {
-          console.error("Error parsing impersonating user:", e);
+          console.error("[App] Error parsing impersonating user:", e);
         }
       }
 
@@ -103,7 +103,7 @@ const App = () => {
         window.location.reload();
       }
     } catch (error) {
-      console.error("Error stopping impersonation:", error);
+      console.error("[App] Error stopping impersonation:", error);
     }
   };
 
@@ -138,7 +138,7 @@ const App = () => {
           <Routes>
             <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
             <Route path="/admin" element={session && isAdmin ? <AdminDashboard /> : <Navigate to="/login" />} />
-            <Route path="/" element={session ? <Index /> : <Navigate to="/login" />} />
+            <Route path="/" element={session ? <Index impersonatedUserId={impersonatingUser?.id} /> : <Navigate to="/login" />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
