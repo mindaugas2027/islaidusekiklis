@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import ExpenseForm from "@/components/ExpenseForm";
 import ExpenseList from "@/components/ExpenseList";
 import ExpenseChart from "@/components/ExpenseChart";
@@ -14,6 +14,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useCategories } from "@/hooks/useCategories";
 import { useMonthlyIncomes } from "@/hooks/useMonthlyIncomes";
 import { useRecurringExpenses } from "@/hooks/useRecurringExpenses";
+import { supabase } from "@/integrations/supabase/client"; // Import supabase client
 
 const DEFAULT_CATEGORIES = [
   "Maistas",
@@ -60,13 +61,37 @@ const Index: React.FC<IndexProps> = ({ impersonatedUserId }) => {
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
   const [selectedYear, setSelectedYear] = useState<string>(currentYear);
 
+  // Ref to track if default categories have been initialized for a specific user ID
+  const initializedUsers = useRef(new Map<string, boolean>());
+
   useEffect(() => {
-    if (!categoriesLoading && categories.length === 0) {
-      DEFAULT_CATEGORIES.forEach(cat => {
-        addCategory(cat);
-      });
-    }
-  }, [categoriesLoading, categories, addCategory]);
+    const initializeDefaultCategories = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const currentUserId = impersonatedUserId || user?.id;
+
+      if (!currentUserId) {
+        console.log("[Index] No user ID available for default category initialization.");
+        return;
+      }
+
+      // Check if default categories have already been initialized for this user
+      if (initializedUsers.current.has(currentUserId)) {
+        console.log(`[Index] Default categories already initialized for user ${currentUserId}. Skipping.`);
+        return;
+      }
+
+      // Only proceed if categories are not loading and the categories list is empty
+      if (!categoriesLoading && categories.length === 0) {
+        console.log(`[Index] Initializing default categories for user ${currentUserId}...`);
+        const promises = DEFAULT_CATEGORIES.map(cat => addCategory(cat));
+        await Promise.all(promises); // Wait for all additions to complete
+        initializedUsers.current.set(currentUserId, true); // Mark as initialized for this user
+        console.log(`[Index] Default categories initialized for user ${currentUserId}.`);
+      }
+    };
+
+    initializeDefaultCategories();
+  }, [categoriesLoading, categories, addCategory, impersonatedUserId]); // Add impersonatedUserId to dependencies
 
   const allExpenses = useMemo(() => {
     const generatedRecurringExpenses: Expense[] = [];
