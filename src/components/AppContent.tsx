@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Index from "@/pages/Index";
@@ -18,15 +18,20 @@ const AppContent = () => {
   const [impersonatingUser, setImpersonatingUser] = useState<{ id: string; email: string } | null>(null);
 
   const location = useLocation();
+  const mounted = useRef(false); // Ref to track if the component is mounted
 
   useEffect(() => {
+    mounted.current = true; // Set to true when component mounts
+
     const updateAuthAndImpersonationState = async () => {
       setLoading(true);
       const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (!mounted.current) return; // Prevent state update if component unmounted
       setSession(currentSession);
 
       if (currentSession) {
         const { data: adminStatus, error } = await supabase.rpc('is_admin');
+        if (!mounted.current) return; // Prevent state update if component unmounted
         if (error) {
           console.error("[AppContent] Error checking admin status:", error);
           setIsAdmin(false);
@@ -34,33 +39,42 @@ const AppContent = () => {
           setIsAdmin(adminStatus === true);
         }
       } else {
+        if (!mounted.current) return; // Prevent state update if component unmounted
         setIsAdmin(false);
       }
 
+      if (!mounted.current) return; // Prevent state update if component unmounted
       const impersonating = localStorage.getItem('is_impersonating') === 'true';
       setIsImpersonating(impersonating);
 
       const impersonatingUserStr = localStorage.getItem('impersonating_user');
       if (impersonatingUserStr) {
         try {
-          setImpersonatingUser(JSON.parse(impersonatingUserStr));
+          const parsedUser = JSON.parse(impersonatingUserStr);
+          if (!mounted.current) return; // Prevent state update if component unmounted
+          setImpersonatingUser(parsedUser);
         } catch (e) {
           console.error("[AppContent] Error parsing impersonating user:", e);
+          if (!mounted.current) return; // Prevent state update if component unmounted
           setImpersonatingUser(null);
         }
       } else {
+        if (!mounted.current) return; // Prevent state update if component unmounted
         setImpersonatingUser(null);
       }
+      if (!mounted.current) return; // Prevent state update if component unmounted
       setLoading(false);
     };
 
     updateAuthAndImpersonationState();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted.current) return; // Prevent update if component unmounted
       updateAuthAndImpersonationState(); 
     });
 
     return () => {
+      mounted.current = false; // Set to false when component unmounts
       authListener.subscription.unsubscribe();
     };
   }, [location.pathname]);
