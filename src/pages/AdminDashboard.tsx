@@ -61,24 +61,29 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     if (!isAdmin) return;
     setLoading(true);
-    
     try {
+      // Get current user ID to exclude from the list
+      const { data: { user } } = await supabase.auth.getUser();
+      const currentUserId = user?.id;
+
       const { data, error } = await supabase.rpc('get_all_users');
-      
       if (error) {
         console.error("Function error:", error);
         toast.error(`Funkcijos klaida: ${error.message}`);
         throw error;
       }
-      
-      const transformedUsers = data.map((user: any) => ({
+
+      // Filter out current admin user
+      const filteredUsers = data.filter((user: any) => user.id !== currentUserId);
+
+      const transformedUsers = filteredUsers.map((user: any) => ({
         id: user.id,
         first_name: user.first_name,
         last_name: user.last_name,
         email: user.email,
         created_at: user.created_at
       }));
-      
+
       setUsers(transformedUsers);
       toast.success(`Sėkmingai įkelta ${transformedUsers.length} vartotojų`);
     } catch (error: any) {
@@ -96,15 +101,14 @@ const AdminDashboard = () => {
       if (session) {
         localStorage.setItem('admin_session', JSON.stringify(session));
       }
-      
+
       const impersonationData = {
         id: userId,
         email: userEmail
       };
-      
       localStorage.setItem('impersonating_user', JSON.stringify(impersonationData));
       localStorage.setItem('is_impersonating', 'true');
-      
+
       toast.success(`Peržiūrite kaip ${userEmail || userId}. Visos duomenys bus rodomi kaip šio vartotojo.`);
       navigate("/");
     } catch (error: any) {
@@ -122,11 +126,10 @@ const AdminDashboard = () => {
           access_token: adminSession.access_token,
           refresh_token: adminSession.refresh_token
         });
-        
+
         localStorage.removeItem('admin_session');
         localStorage.removeItem('impersonating_user');
         localStorage.removeItem('is_impersonating');
-        
         toast.success("Grįžta į administratoriaus paskyrą");
         navigate("/"); // Navigate to trigger App.tsx re-render
       }
@@ -142,17 +145,17 @@ const AdminDashboard = () => {
       const { data, error } = await supabase.functions.invoke('delete_user', {
         body: { user_id: userId }
       });
-      
+
       if (error) {
         console.error("Error calling delete_user function:", error);
         throw new Error(error.message || "Nepavyko ištrinti vartotojo");
       }
-      
+
       if (data?.error) {
         console.error("Function returned error:", data.error);
         throw new Error(data.error);
       }
-      
+
       setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
       toast.success("Vartotojas sėkmingai ištrintas");
     } catch (error: any) {
@@ -238,11 +241,7 @@ const AdminDashboard = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={() => impersonateUser(user.id, user.email)}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => impersonateUser(user.id, user.email)}>
                               <Eye className="h-4 w-4 mr-1" />
                               Peržiūrėti
                             </Button>
@@ -261,10 +260,7 @@ const AdminDashboard = () => {
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Atšaukti</AlertDialogCancel>
-                                  <AlertDialogAction 
-                                    onClick={() => deleteUser(user.id)} 
-                                    disabled={deletingUserId === user.id}
-                                  >
+                                  <AlertDialogAction onClick={() => deleteUser(user.id)} disabled={deletingUserId === user.id}>
                                     {deletingUserId === user.id ? "Trinama..." : "Patvirtinti"}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
