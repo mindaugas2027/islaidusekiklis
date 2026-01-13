@@ -3,13 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, Trash2, Users } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Expense } from "@/types/expense";
-import { format } from "date-fns";
 
 interface UserProfile {
   id: string;
@@ -19,20 +16,11 @@ interface UserProfile {
   created_at: string;
 }
 
-interface UserExpense {
-  user_id: string;
-  user_email: string;
-  user_name: string;
-  expense: Expense;
-}
-
 const AdminDashboard = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [allExpenses, setAllExpenses] = useState<UserExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("users");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -58,7 +46,6 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (isAdmin) {
       fetchUsers();
-      fetchAllExpenses();
     }
   }, [isAdmin]);
 
@@ -67,7 +54,6 @@ const AdminDashboard = () => {
     setLoading(true);
     
     try {
-      console.log("Attempting to fetch users via function...");
       const { data, error } = await supabase.rpc('get_all_users');
       
       if (error) {
@@ -76,7 +62,6 @@ const AdminDashboard = () => {
         throw error;
       }
       
-      console.log("Users fetched:", data?.length || 0);
       const transformedUsers = data.map((user: any) => ({
         id: user.id,
         first_name: user.first_name,
@@ -85,7 +70,6 @@ const AdminDashboard = () => {
         created_at: user.created_at
       }));
       
-      console.log("Transformed users:", transformedUsers.length);
       setUsers(transformedUsers);
       toast.success(`Sėkmingai įkelta ${transformedUsers.length} vartotojų`);
     } catch (error: any) {
@@ -94,43 +78,6 @@ const AdminDashboard = () => {
       setUsers([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchAllExpenses = async () => {
-    if (!isAdmin) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('expenses')
-        .select('*, profiles!inner(email, first_name, last_name)');
-      
-      if (error) {
-        console.error("Error fetching all expenses:", error);
-        toast.error("Nepavyko įkelti visų išlaidų");
-        return;
-      }
-      
-      const transformedExpenses = data.map((item: any) => ({
-        user_id: item.user_id,
-        user_email: item.profiles.email,
-        user_name: `${item.profiles.first_name || ''} ${item.profiles.last_name || ''}`.trim() || item.profiles.email,
-        expense: {
-          id: item.id,
-          amount: item.amount,
-          category: item.category,
-          description: item.description,
-          date: item.date,
-          user_id: item.user_id,
-          created_at: item.created_at
-        }
-      }));
-      
-      setAllExpenses(transformedExpenses);
-      toast.success(`Sėkmingai įkelta ${transformedExpenses.length} išlaidų iš visų vartotojų`);
-    } catch (error) {
-      console.error("Error fetching all expenses:", error);
-      toast.error("Nepavyko įkelti visų išlaidų");
     }
   };
 
@@ -243,145 +190,87 @@ const AdminDashboard = () => {
           <h1 className="text-2xl md:text-3xl font-bold">Administratoriaus skydelis</h1>
           <div className="flex gap-2">
             <Button onClick={fetchUsers} variant="outline">Atnaujinti vartotojus</Button>
-            <Button onClick={fetchAllExpenses} variant="outline">Atnaujinti išlaidas</Button>
             <Button onClick={() => navigate("/")}>Grįžti į pagrindinį</Button>
           </div>
         </div>
 
-        <Tabs defaultValue="users" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="users">Vartotojai</TabsTrigger>
-            <TabsTrigger value="expenses">Visos išlaidos</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold">Visi vartotojai ({users.length})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {users.length === 0 ? (
-                  <div className="text-center py-4">
-                    <p className="text-gray-500 mb-4">Nerasta vartotojų</p>
-                    <Button onClick={fetchUsers} variant="outline">
-                      Bandyti dar kartą
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>El. paštas</TableHead>
-                          <TableHead>Vardas</TableHead>
-                          <TableHead>Pavardė</TableHead>
-                          <TableHead>Registracijos data</TableHead>
-                          <TableHead>Veiksmai</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {users.map((user) => (
-                          <TableRow key={user.id}>
-                            <TableCell className="font-medium">{user.email || 'N/A'}</TableCell>
-                            <TableCell>{user.first_name || 'Nėra'}</TableCell>
-                            <TableCell>{user.last_name || 'Nėra'}</TableCell>
-                            <TableCell>
-                              {user.created_at ? new Date(user.created_at).toLocaleDateString('lt-LT') : 'N/A'}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={() => impersonateUser(user.id, user.email)}
-                                >
-                                  <Eye className="h-4 w-4 mr-1" />
-                                  Peržiūrėti
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold">Visi vartotojai ({users.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {users.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-gray-500 mb-4">Nerasta vartotojų</p>
+                <Button onClick={fetchUsers} variant="outline">
+                  Bandyti dar kartą
+                </Button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>El. paštas</TableHead>
+                      <TableHead>Vardas</TableHead>
+                      <TableHead>Pavardė</TableHead>
+                      <TableHead>Registracijos data</TableHead>
+                      <TableHead>Veiksmai</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.email || 'N/A'}</TableCell>
+                        <TableCell>{user.first_name || 'Nėra'}</TableCell>
+                        <TableCell>{user.last_name || 'Nėra'}</TableCell>
+                        <TableCell>
+                          {user.created_at ? new Date(user.created_at).toLocaleDateString('lt-LT') : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => impersonateUser(user.id, user.email)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              Peržiūrėti
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="sm">
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="sm">
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Ar tikrai norite ištrinti vartotoją?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Šis veiksmas negrįžtamas. Bus ištrinti visi vartotojo duomenys, įskaitant išlaidas, kategorijas ir kitą informaciją.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Atšaukti</AlertDialogCancel>
-                                      <AlertDialogAction 
-                                        onClick={() => deleteUser(user.id)} 
-                                        disabled={deletingUserId === user.id}
-                                      >
-                                        {deletingUserId === user.id ? "Trinama..." : "Patvirtinti"}
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="expenses">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold">Visos išlaidos ({allExpenses.length})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {allExpenses.length === 0 ? (
-                  <div className="text-center py-4">
-                    <p className="text-gray-500 mb-4">Nerasta išlaidų</p>
-                    <Button onClick={fetchAllExpenses} variant="outline">
-                      Bandyti dar kartą
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Vartotojas</TableHead>
-                          <TableHead>Aprašymas</TableHead>
-                          <TableHead>Kategorija</TableHead>
-                          <TableHead className="text-right">Suma (€)</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {allExpenses
-                          .sort((a, b) => new Date(b.expense.date).getTime() - new Date(a.expense.date).getTime())
-                          .map((item) => (
-                            <TableRow key={item.expense.id}>
-                              <TableCell>{format(new Date(item.expense.date), 'yyyy-MM-dd')}</TableCell>
-                              <TableCell>
-                                <div className="font-medium">{item.user_email}</div>
-                                <div className="text-sm text-muted-foreground">{item.user_name}</div>
-                              </TableCell>
-                              <TableCell>{item.expense.description}</TableCell>
-                              <TableCell>{item.expense.category}</TableCell>
-                              <TableCell className="text-right">{item.expense.amount.toFixed(2)}</TableCell>
-                            </TableRow>
-                          ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Ar tikrai norite ištrinti vartotoją?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Šis veiksmas negrįžtamas. Bus ištrinti visi vartotojo duomenys, įskaitant išlaidas, kategorijas ir kitą informaciją.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Atšaukti</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => deleteUser(user.id)} 
+                                    disabled={deletingUserId === user.id}
+                                  >
+                                    {deletingUserId === user.id ? "Trinama..." : "Patvirtinti"}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
