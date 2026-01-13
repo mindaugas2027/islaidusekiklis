@@ -101,6 +101,7 @@ export const useCategories = (impersonatedUserIdFromProps?: string) => {
     setCategories(prevCategories => [...prevCategories, trimmedName].sort());
 
     try {
+      console.log("[useCategories] Inserting category with user_id:", targetUserId, "Category name:", trimmedName);
       const { error } = await supabase
         .from('categories')
         .insert([{ name: trimmedName, user_id: targetUserId }]);
@@ -139,6 +140,7 @@ export const useCategories = (impersonatedUserIdFromProps?: string) => {
     setCategories(prevCategories => prevCategories.filter(cat => cat !== name));
 
     try {
+      console.log("[useCategories] Deleting category with name:", name, "for user_id:", targetUserId);
       const { error } = await supabase
         .from('categories')
         .delete()

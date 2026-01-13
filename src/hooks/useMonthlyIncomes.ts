@@ -120,6 +120,7 @@ export const useMonthlyIncomes = (impersonatedUserIdFromProps?: string) => {
     }
 
     if (type === 'month' && income === 0) {
+      console.log("[useMonthlyIncomes] Deleting monthly income for month_year:", month_year, "for user_id:", targetUserId);
       const { error: deleteError } = await supabase
         .from('monthly_incomes')
         .delete()
@@ -142,6 +143,7 @@ export const useMonthlyIncomes = (impersonatedUserIdFromProps?: string) => {
       return true;
     }
 
+    console.log("[useMonthlyIncomes] Attempting to update monthly income for month_year:", month_year, "for user_id:", targetUserId, "with income:", income);
     const { data: updateData, error: updateError } = await supabase
       .from('monthly_incomes')
       .update({ income })
@@ -166,6 +168,7 @@ export const useMonthlyIncomes = (impersonatedUserIdFromProps?: string) => {
       return true;
     }
 
+    console.log("[useMonthlyIncomes] Attempting to insert monthly income for month_year:", month_year, "for user_id:", targetUserId, "with income:", income);
     const { data: insertData, error: insertError } = await supabase
       .from('monthly_incomes')
       .insert([{ month_year, income, user_id: targetUserId }])

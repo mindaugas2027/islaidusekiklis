@@ -38,7 +38,7 @@ const App = () => {
         try {
           setImpersonatingUser(JSON.parse(impersonatingUserStr));
         } catch (e) {
-          console.error("Error parsing impersonating user:", e);
+          console.error("[App] Error parsing impersonating user:", e);
         }
       }
 
@@ -64,7 +64,7 @@ const App = () => {
         try {
           setImpersonatingUser(JSON.parse(impersonatingUserStr));
         } catch (e) {
-          console.error("Error parsing impersonating user:", e);
+          console.error("[App] Error parsing impersonating user:", e);
         }
       }
 
@@ -103,7 +103,7 @@ const App = () => {
         window.location.reload();
       }
     } catch (error) {
-      console.error("Error stopping impersonation:", error);
+      console.error("[App] Error stopping impersonation:", error);
     }
   };
 

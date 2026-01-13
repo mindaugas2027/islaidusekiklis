@@ -111,6 +111,7 @@ export const useExpenses = (impersonatedUserIdFromProps?: string) => {
     setExpenses(prevExpenses => [tempExpense, ...prevExpenses]);
 
     try {
+      console.log("[useExpenses] Inserting expense with user_id:", targetUserId, "Expense data:", expense);
       const { data, error } = await supabase
         .from('expenses')
         .insert([{ ...expense, user_id: targetUserId }])
@@ -151,6 +152,7 @@ export const useExpenses = (impersonatedUserIdFromProps?: string) => {
     setExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== id));
 
     try {
+      console.log("[useExpenses] Deleting expense with id:", id, "for user_id:", targetUserId);
       const { error } = await supabase
         .from('expenses')
         .delete()

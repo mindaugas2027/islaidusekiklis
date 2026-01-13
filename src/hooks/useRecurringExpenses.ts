@@ -109,6 +109,7 @@ export const useRecurringExpenses = (impersonatedUserIdFromProps?: string) => {
     setRecurringExpenses(prevExpenses => [...prevExpenses, tempExpense].sort((a, b) => a.name.localeCompare(b.name)));
 
     try {
+      console.log("[useRecurringExpenses] Inserting recurring expense with user_id:", targetUserId, "Expense data:", expense);
       const { data, error } = await supabase
         .from('recurring_expenses')
         .insert([{
@@ -156,6 +157,7 @@ export const useRecurringExpenses = (impersonatedUserIdFromProps?: string) => {
     setRecurringExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== id));
 
     try {
+      console.log("[useRecurringExpenses] Deleting recurring expense with id:", id, "for user_id:", targetUserId);
       const { error } = await supabase
         .from('recurring_expenses')
         .delete()
