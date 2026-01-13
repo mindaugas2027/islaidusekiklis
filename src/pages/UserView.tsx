@@ -40,7 +40,8 @@ const UserView = () => {
   const [selectedMonth, setSelectedMonth] = useState<string>(String(new Date().getMonth() + 1).padStart(2, '0'));
   const [selectedYear, setSelectedYear] = useState<string>(String(new Date().getFullYear()));
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  
+  const [userName, setUserName] = useState<string>('');
+
   // Use the same hooks as regular user view but with impersonated user ID
   const { expenses, loading: expensesLoading, deleteExpense } = useExpenses(userId);
   const { categories, loading: categoriesLoading } = useCategories(userId);
@@ -49,7 +50,7 @@ const UserView = () => {
 
   useEffect(() => {
     checkAdminStatus();
-    fetchUserEmail();
+    fetchUserInfo();
   }, []);
 
   const checkAdminStatus = async () => {
@@ -68,21 +69,22 @@ const UserView = () => {
     }
   };
 
-  const fetchUserEmail = async () => {
+  const fetchUserInfo = async () => {
     if (!userId) return;
-    
+
     try {
       const { data, error } = await supabase.rpc('get_user_by_id', { user_id: userId });
       if (error) {
-        console.error("Error fetching user email:", error);
+        console.error("Error fetching user info:", error);
         return;
       }
-      
+
       if (data && data.length > 0) {
         setUserEmail(data[0].email);
+        setUserName(`${data[0].first_name || ''} ${data[0].last_name || ''}`.trim() || data[0].email);
       }
     } catch (error) {
-      console.error("Error fetching user email:", error);
+      console.error("Error fetching user info:", error);
     }
   };
 
@@ -98,10 +100,10 @@ const UserView = () => {
   });
 
   const totalExpensesForSelectedMonth = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-  
+
   const selectedMonthYear = `${selectedYear}-${selectedMonth}`;
-  const currentMonthIncome = monthlyIncomes[selectedMonthYear] !== undefined && monthlyIncomes[selectedMonthYear] !== null 
-    ? monthlyIncomes[selectedMonthYear] 
+  const currentMonthIncome = monthlyIncomes[selectedMonthYear] !== undefined && monthlyIncomes[selectedMonthYear] !== null
+    ? monthlyIncomes[selectedMonthYear]
     : defaultMonthlyIncome;
 
   const monthlyExpenseTotals = months.map(m => {
@@ -112,7 +114,7 @@ const UserView = () => {
         return expenseYear === selectedYear && String(expenseDate.getMonth() + 1).padStart(2, '0') === m.value;
       })
       .reduce((sum, expense) => sum + expense.amount, 0);
-    
+
     return {
       name: m.label,
       total: parseFloat(monthlyTotal.toFixed(2))
@@ -150,7 +152,7 @@ const UserView = () => {
             </Button>
             <h1 className="text-2xl md:text-3xl font-bold">Vartotojo peržiūra</h1>
             <p className="text-muted-foreground">
-              Peržiūrate kaip {userEmail || userId}
+              Peržiūrate kaip {userName} ({userEmail})
             </p>
           </div>
           <Button onClick={() => navigate("/")}>Grįžti į pagrindinį</Button>
@@ -201,7 +203,7 @@ const UserView = () => {
                   <h3 className="font-medium mb-2">Numatytosios pajamos:</h3>
                   <p className="text-2xl font-bold">{defaultMonthlyIncome.toFixed(2)} €</p>
                 </div>
-                
+
                 {Object.keys(monthlyIncomes).filter(key => key !== 'default').length > 0 && (
                   <div>
                     <h3 className="font-medium mb-2">Specifinės pajamos:</h3>
@@ -287,26 +289,26 @@ const UserView = () => {
         </div>
 
         <div className="space-y-6">
-          <IncomeTracker 
-            monthlyIncome={currentMonthIncome} 
-            totalExpenses={totalExpensesForSelectedMonth} 
-            previousMonthCarryOver={0} 
+          <IncomeTracker
+            monthlyIncome={currentMonthIncome}
+            totalExpenses={totalExpensesForSelectedMonth}
+            previousMonthCarryOver={0}
           />
-          
-          <ExpenseChart 
-            expenses={filteredExpenses} 
-            selectedMonth={selectedMonth} 
-            selectedYear={selectedYear} 
+
+          <ExpenseChart
+            expenses={filteredExpenses}
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
           />
-          
-          <MonthlyLineChart 
-            monthlyData={monthlyExpenseTotals} 
-            selectedYear={selectedYear} 
+
+          <MonthlyLineChart
+            monthlyData={monthlyExpenseTotals}
+            selectedYear={selectedYear}
           />
-          
-          <ExpenseList 
-            expenses={filteredExpenses} 
-            onDeleteExpense={handleDeleteExpense} 
+
+          <ExpenseList
+            expenses={filteredExpenses}
+            onDeleteExpense={handleDeleteExpense}
           />
         </div>
       </div>
