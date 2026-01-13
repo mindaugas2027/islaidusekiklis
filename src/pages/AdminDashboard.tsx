@@ -99,13 +99,11 @@ const AdminDashboard = () => {
       const { data, error } = await supabase
         .from('expenses')
         .select('*, profiles!inner(email, first_name, last_name)');
-
       if (error) {
         console.error("Error fetching all expenses:", error);
         toast.error("Nepavyko įkelti visų išlaidų");
         return;
       }
-
       const transformedExpenses = data.map((item: any) => ({
         user_id: item.user_id,
         user_email: item.profiles.email,
@@ -120,7 +118,6 @@ const AdminDashboard = () => {
           created_at: item.created_at
         }
       }));
-
       setAllExpenses(transformedExpenses);
       toast.success(`Sėkmingai įkelta ${transformedExpenses.length} išlaidų iš visų vartotojų`);
     } catch (error) {
@@ -135,10 +132,12 @@ const AdminDashboard = () => {
       if (session) {
         localStorage.setItem('admin_session', JSON.stringify(session));
       }
-      const impersonationData = { id: userId, email: userEmail };
+      const impersonationData = {
+        id: userId,
+        email: userEmail
+      };
       localStorage.setItem('impersonating_user', JSON.stringify(impersonationData));
       localStorage.setItem('is_impersonating', 'true');
-
       toast.success(`Peržiūrate kaip ${userEmail || userId}. Visos duomenys bus rodomi kaip šio vartotojo.`);
       navigate("/");
     } catch (error: any) {
@@ -171,21 +170,17 @@ const AdminDashboard = () => {
   const deleteUser = async (userId: string) => {
     try {
       setDeletingUserId(userId);
-
       const { data, error } = await supabase.functions.invoke('delete_user', {
         body: { user_id: userId }
       });
-
       if (error) {
         console.error("Error calling delete_user function:", error);
         throw new Error(error.message || "Nepavyko ištrinti vartotojo");
       }
-
       if (data?.error) {
         console.error("Function returned error:", data.error);
         throw new Error(data.error);
       }
-
       setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
       toast.success("Vartotojas sėkmingai ištrintas");
     } catch (error: any) {
@@ -266,7 +261,6 @@ const AdminDashboard = () => {
             <Button onClick={() => navigate("/")}>Grįžti į pagrindinį</Button>
           </div>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -309,7 +303,6 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
-
         <Tabs defaultValue="users" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
             <TabsTrigger value="users">Vartotojai</TabsTrigger>
@@ -317,7 +310,6 @@ const AdminDashboard = () => {
             <TabsTrigger value="categories">Kategorijos</TabsTrigger>
             <TabsTrigger value="by-user">Išlaidos pagal vartotojus</TabsTrigger>
           </TabsList>
-
           <TabsContent value="users">
             <Card>
               <CardHeader>
@@ -390,7 +382,6 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
-
           <TabsContent value="expenses">
             <Card>
               <CardHeader>
@@ -438,7 +429,6 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
-
           <TabsContent value="categories">
             <Card>
               <CardHeader>
@@ -481,7 +471,6 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
-
           <TabsContent value="by-user">
             <Card>
               <CardHeader>
