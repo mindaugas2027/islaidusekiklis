@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
@@ -12,6 +12,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner"; // Import toast for notifications
 
 const queryClient = new QueryClient();
 
@@ -20,15 +21,18 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [impersonatingUser, setImpersonatingUser] = useState(null);
+  const [impersonatingUser, setImpersonatingUser] = useState<{ id: string; email: string } | null>(null);
+
+  const location = useLocation(); // Get location object
 
   useEffect(() => {
-    const getSessionAndAdminStatus = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
+    const updateAuthAndImpersonationState = async () => {
+      setLoading(true);
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      setSession(currentSession);
 
-      // Check if current user is admin using the new RPC function
-      if (session) {
+      // Check admin status
+      if (currentSession) {
         const { data: adminStatus, error } = await supabase.rpc('is_admin');
         if (error) {
           console.error("[App] Error checking admin status:", error);
@@ -40,87 +44,59 @@ const App = () => {
         setIsAdmin(false);
       }
 
-      // Check if we're impersonating a user
+      // Check impersonation status from localStorage
       const impersonating = localStorage.getItem('is_impersonating') === 'true';
       setIsImpersonating(impersonating);
 
-      // Get impersonating user info
       const impersonatingUserStr = localStorage.getItem('impersonating_user');
       if (impersonatingUserStr) {
         try {
           setImpersonatingUser(JSON.parse(impersonatingUserStr));
         } catch (e) {
           console.error("[App] Error parsing impersonating user:", e);
+          setImpersonatingUser(null);
         }
+      } else {
+        setImpersonatingUser(null);
       }
       setLoading(false);
     };
 
-    getSessionAndAdminStatus();
+    updateAuthAndImpersonationState(); // Initial load and on location change
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      
-      // Re-check admin status on auth state change
-      const checkAdminOnAuthChange = async () => {
-        if (session) {
-          const { data: adminStatus, error } = await supabase.rpc('is_admin');
-          if (error) {
-            console.error("[App] Error checking admin status on auth change:", error);
-            setIsAdmin(false);
-          } else {
-            setIsAdmin(adminStatus === true);
-          }
-        } else {
-          setIsAdmin(false);
-        }
-      };
-      checkAdminOnAuthChange();
-
-      // Check if we're impersonating a user
-      const impersonating = localStorage.getItem('is_impersonating') === 'true';
-      setIsImpersonating(impersonating);
-
-      // Get impersonating user info
-      const impersonatingUserStr = localStorage.getItem('impersonating_user');
-      if (impersonatingUserStr) {
-        try {
-          setImpersonatingUser(JSON.parse(impersonatingUserStr));
-        } catch (e) {
-          console.error("[App] Error parsing impersonating user:", e);
-        }
-      }
-      setLoading(false);
+      // This listener handles changes to the actual Supabase session
+      // When session changes, we re-evaluate everything
+      updateAuthAndImpersonationState(); 
     });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [location.pathname]); // Re-run this effect when the path changes
 
   const stopImpersonation = async () => {
     try {
-      // Get the admin session from localStorage
       const adminSessionStr = localStorage.getItem('admin_session');
       if (adminSessionStr) {
         const adminSession = JSON.parse(adminSessionStr);
 
-        // Restore admin session
         await supabase.auth.setSession({
           access_token: adminSession.access_token,
           refresh_token: adminSession.refresh_token
         });
 
-        // Clear impersonation data
         localStorage.removeItem('admin_session');
         localStorage.removeItem('impersonating_user');
         localStorage.removeItem('is_impersonating');
-        setIsImpersonating(false);
-        setImpersonatingUser(null);
-        window.location.reload();
+        
+        // After restoring admin session, the onAuthStateChange listener will fire
+        // and updateAuthAndImpersonationState will be called, refreshing the UI.
+        toast.success("Grįžta į administratoriaus paskyrą");
       }
     } catch (error) {
       console.error("[App] Error stopping impersonation:", error);
+      toast.error("Nepavyko grįžti į administratoriaus paskyrą");
     }
   };
 
@@ -154,7 +130,7 @@ const App = () => {
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
-            <Route path="/admin" element={session && isAdmin ? <AdminDashboard /> : <Navigate to="/login" />} />
+            <Route path="/admin" element={session && isAdmin ? <AdminDashboard /> : <Navigate to="/" />} />
             <Route path="/" element={session ? <Index impersonatedUserId={isImpersonating ? impersonatingUser?.id : undefined} /> : <Navigate to="/login" />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

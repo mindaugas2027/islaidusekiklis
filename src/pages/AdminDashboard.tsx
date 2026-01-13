@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Eye, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "sonner"; // Import toast for notifications
 import { useNavigate } from "react-router-dom";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
@@ -128,7 +128,7 @@ const AdminDashboard = () => {
         localStorage.removeItem('is_impersonating');
         
         toast.success("Grįžta į administratoriaus paskyrą");
-        window.location.reload();
+        navigate("/"); // Navigate to trigger App.tsx re-render
       }
     } catch (error) {
       console.error("Error stopping impersonation:", error);
