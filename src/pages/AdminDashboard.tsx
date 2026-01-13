@@ -96,30 +96,54 @@ const AdminDashboard = () => {
   const fetchAllExpenses = async () => {
     if (!isAdmin) return;
     try {
-      const { data, error } = await supabase
+      // Fetch all expenses first
+      const { data: expensesData, error: expensesError } = await supabase
         .from('expenses')
-        .select('*, profiles!inner(email, first_name, last_name)');
-
-      if (error) {
-        console.error("Error fetching all expenses:", error);
+        .select('*');
+      
+      if (expensesError) {
+        console.error("Error fetching all expenses:", expensesError);
         toast.error("Nepavyko įkelti visų išlaidų");
         return;
       }
 
-      const transformedExpenses = data.map((item: any) => ({
-        user_id: item.user_id,
-        user_email: item.profiles.email,
-        user_name: `${item.profiles.first_name || ''} ${item.profiles.last_name || ''}`.trim() || item.profiles.email,
-        expense: {
-          id: item.id,
-          amount: item.amount,
-          category: item.category,
-          description: item.description,
-          date: item.date,
-          user_id: item.user_id,
-          created_at: item.created_at
-        }
-      }));
+      // Fetch all user profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email');
+      
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+        toast.error("Nepavyko įkelti vartotojų profilių");
+        return;
+      }
+
+      // Create a map of user profiles for quick lookup
+      const profilesMap = profilesData.reduce((acc, profile) => {
+        acc[profile.id] = profile;
+        return acc;
+      }, {} as Record<string, any>);
+
+      // Transform expenses with user information
+      const transformedExpenses = expensesData.map((expense: any) => {
+        const userProfile = profilesMap[expense.user_id];
+        return {
+          user_id: expense.user_id,
+          user_email: userProfile?.email || 'N/A',
+          user_name: userProfile ? 
+            `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.email : 
+            'N/A',
+          expense: {
+            id: expense.id,
+            amount: expense.amount,
+            category: expense.category,
+            description: expense.description,
+            date: expense.date,
+            user_id: expense.user_id,
+            created_at: expense.created_at
+          }
+        };
+      });
 
       setAllExpenses(transformedExpenses);
       toast.success(`Sėkmingai įkelta ${transformedExpenses.length} išlaidų iš visų vartotojų`);
@@ -135,10 +159,12 @@ const AdminDashboard = () => {
       if (session) {
         localStorage.setItem('admin_session', JSON.stringify(session));
       }
-      const impersonationData = { id: userId, email: userEmail };
+      const impersonationData = {
+        id: userId,
+        email: userEmail
+      };
       localStorage.setItem('impersonating_user', JSON.stringify(impersonationData));
       localStorage.setItem('is_impersonating', 'true');
-
       toast.success(`Peržiūrate kaip ${userEmail || userId}. Visos duomenys bus rodomi kaip šio vartotojo.`);
       navigate("/");
     } catch (error: any) {
@@ -171,21 +197,17 @@ const AdminDashboard = () => {
   const deleteUser = async (userId: string) => {
     try {
       setDeletingUserId(userId);
-
       const { data, error } = await supabase.functions.invoke('delete_user', {
         body: { user_id: userId }
       });
-
       if (error) {
         console.error("Error calling delete_user function:", error);
         throw new Error(error.message || "Nepavyko ištrinti vartotojo");
       }
-
       if (data?.error) {
         console.error("Function returned error:", data.error);
         throw new Error(data.error);
       }
-
       setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
       toast.success("Vartotojas sėkmingai ištrintas");
     } catch (error: any) {
