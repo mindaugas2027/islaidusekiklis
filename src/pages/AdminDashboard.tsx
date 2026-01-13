@@ -29,15 +29,24 @@ const AdminDashboard = () => {
 
   const checkAdminStatus = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email === 'mindaugas@gmail.com') {
+      const { data, error } = await supabase.rpc('is_admin');
+      if (error) {
+        console.error("Error checking admin status with rpc is_admin:", error);
+        setIsAdmin(false);
+        toast.error("Nepavyko patikrinti vartotojo teisių");
+        navigate("/");
+        return;
+      }
+      if (data === true) {
         setIsAdmin(true);
       } else {
+        setIsAdmin(false);
         toast.error("Neturite teisės peržiūrėti šio puslapio");
         navigate("/");
       }
     } catch (error) {
-      console.error("Error checking admin status:", error);
+      console.error("Unexpected error checking admin status:", error);
+      setIsAdmin(false);
       toast.error("Nepavyko patikrinti vartotojo teisių");
       navigate("/");
     }
@@ -96,7 +105,7 @@ const AdminDashboard = () => {
       localStorage.setItem('impersonating_user', JSON.stringify(impersonationData));
       localStorage.setItem('is_impersonating', 'true');
       
-      toast.success(`Peržiūrate kaip ${userEmail || userId}. Visos duomenys bus rodomi kaip šio vartotojo.`);
+      toast.success(`Peržiūrite kaip ${userEmail || userId}. Visos duomenys bus rodomi kaip šio vartotojo.`);
       navigate("/");
     } catch (error: any) {
       console.error("Error impersonating user:", error);

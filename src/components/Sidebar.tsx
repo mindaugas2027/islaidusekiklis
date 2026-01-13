@@ -38,9 +38,12 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   useEffect(() => {
     const checkAdminStatus = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email === 'mindaugas@gmail.com') {
-        setIsAdmin(true);
+      const { data, error } = await supabase.rpc('is_admin');
+      if (error) {
+        console.error("[Sidebar] Error checking admin status:", error);
+        setIsAdmin(false);
+      } else {
+        setIsAdmin(data === true);
       }
     };
 

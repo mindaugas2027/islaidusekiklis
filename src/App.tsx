@@ -23,57 +23,74 @@ const App = () => {
   const [impersonatingUser, setImpersonatingUser] = useState(null);
 
   useEffect(() => {
-    const getSession = async () => {
+    const getSessionAndAdminStatus = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
-      setLoading(false);
 
-      // Check if we're impersonating a user
-      const impersonating = localStorage.getItem('is_impersonating') === 'true';
-      setIsImpersonating(impersonating);
-
-      // Get impersonating user info
-      const impersonatingUserStr = localStorage.getItem('impersonating_user');
-      if (impersonatingUserStr) {
-        try {
-          setImpersonatingUser(JSON.parse(impersonatingUserStr));
-        } catch (e) {
-          console.error("[App] Error parsing impersonating user:", e);
+      // Check if current user is admin using the new RPC function
+      if (session) {
+        const { data: adminStatus, error } = await supabase.rpc('is_admin');
+        if (error) {
+          console.error("[App] Error checking admin status:", error);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(adminStatus === true);
         }
-      }
-
-      // Check if current user is admin
-      if (session?.user?.email === 'mindaugas@gmail.com') {
-        setIsAdmin(true);
-      }
-    };
-
-    getSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setLoading(false);
-
-      // Check if we're impersonating a user
-      const impersonating = localStorage.getItem('is_impersonating') === 'true';
-      setIsImpersonating(impersonating);
-
-      // Get impersonating user info
-      const impersonatingUserStr = localStorage.getItem('impersonating_user');
-      if (impersonatingUserStr) {
-        try {
-          setImpersonatingUser(JSON.parse(impersonatingUserStr));
-        } catch (e) {
-          console.error("[App] Error parsing impersonating user:", e);
-        }
-      }
-
-      // Check if current user is admin
-      if (session?.user?.email === 'mindaugas@gmail.com') {
-        setIsAdmin(true);
       } else {
         setIsAdmin(false);
       }
+
+      // Check if we're impersonating a user
+      const impersonating = localStorage.getItem('is_impersonating') === 'true';
+      setIsImpersonating(impersonating);
+
+      // Get impersonating user info
+      const impersonatingUserStr = localStorage.getItem('impersonating_user');
+      if (impersonatingUserStr) {
+        try {
+          setImpersonatingUser(JSON.parse(impersonatingUserStr));
+        } catch (e) {
+          console.error("[App] Error parsing impersonating user:", e);
+        }
+      }
+      setLoading(false);
+    };
+
+    getSessionAndAdminStatus();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      
+      // Re-check admin status on auth state change
+      const checkAdminOnAuthChange = async () => {
+        if (session) {
+          const { data: adminStatus, error } = await supabase.rpc('is_admin');
+          if (error) {
+            console.error("[App] Error checking admin status on auth change:", error);
+            setIsAdmin(false);
+          } else {
+            setIsAdmin(adminStatus === true);
+          }
+        } else {
+          setIsAdmin(false);
+        }
+      };
+      checkAdminOnAuthChange();
+
+      // Check if we're impersonating a user
+      const impersonating = localStorage.getItem('is_impersonating') === 'true';
+      setIsImpersonating(impersonating);
+
+      // Get impersonating user info
+      const impersonatingUserStr = localStorage.getItem('impersonating_user');
+      if (impersonatingUserStr) {
+        try {
+          setImpersonatingUser(JSON.parse(impersonatingUserStr));
+        } catch (e) {
+          console.error("[App] Error parsing impersonating user:", e);
+        }
+      }
+      setLoading(false);
     });
 
     return () => {
@@ -138,7 +155,7 @@ const App = () => {
           <Routes>
             <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
             <Route path="/admin" element={session && isAdmin ? <AdminDashboard /> : <Navigate to="/login" />} />
-            <Route path="/" element={session ? <Index impersonatedUserId={impersonatingUser?.id} /> : <Navigate to="/login" />} />
+            <Route path="/" element={session ? <Index impersonatedUserId={isImpersonating ? impersonatingUser?.id : undefined} /> : <Navigate to="/login" />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
