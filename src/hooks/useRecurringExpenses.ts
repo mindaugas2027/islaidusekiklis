@@ -3,19 +3,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { RecurringExpense } from "@/types/recurringExpense";
 import { toast } from "sonner";
 
-export const useRecurringExpenses = (impersonatedUserId?: string) => {
+export const useRecurringExpenses = (impersonatedUserIdFromProps?: string) => {
   const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([]);
   const [loading, setLoading] = useState(true);
 
   const getEffectiveUserId = useCallback(async () => {
-    if (impersonatedUserId) return impersonatedUserId;
+    console.log("[useRecurringExpenses] getEffectiveUserId called. impersonatedUserIdFromProps:", impersonatedUserIdFromProps);
+    if (impersonatedUserIdFromProps) {
+      console.log("[useRecurringExpenses] Returning impersonatedUserIdFromProps:", impersonatedUserIdFromProps);
+      return impersonatedUserIdFromProps;
+    }
     const { data: { user } } = await supabase.auth.getUser();
+    console.log("[useRecurringExpenses] No impersonated ID. Falling back to supabase.auth.getUser(). User ID:", user?.id);
     return user?.id;
-  }, [impersonatedUserId]);
+  }, [impersonatedUserIdFromProps]);
 
   const refreshRecurringExpenses = useCallback(async () => {
     setLoading(true);
     const targetUserId = await getEffectiveUserId();
+    console.log("[useRecurringExpenses] refreshRecurringExpenses using targetUserId:", targetUserId);
 
     if (!targetUserId) {
       setRecurringExpenses([]);
@@ -31,9 +37,10 @@ export const useRecurringExpenses = (impersonatedUserId?: string) => {
 
     if (error) {
       toast.error("Nepavyko įkelti pasikartojančių išlaidų");
-      console.error(error);
+      console.error("[useRecurringExpenses] Error loading recurring expenses:", error);
     } else {
       setRecurringExpenses(data as RecurringExpense[]);
+      console.log("[useRecurringExpenses] Loaded recurring expenses for user:", targetUserId, data);
     }
     setLoading(false);
   }, [getEffectiveUserId]);
@@ -43,15 +50,17 @@ export const useRecurringExpenses = (impersonatedUserId?: string) => {
 
     const setupSubscription = async () => {
       const targetUserId = await getEffectiveUserId();
+      console.log("[useRecurringExpenses] Setting up subscription for targetUserId:", targetUserId);
 
       if (!targetUserId) return;
 
       const channel = supabase
-        .channel('recurring-expenses-changes')
+        .channel(`recurring-expenses-changes-${targetUserId}`)
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'recurring_expenses', filter: `user_id=eq.${targetUserId}` },
           (payload) => {
+            console.log("[useRecurringExpenses] Realtime INSERT event:", payload);
             refreshRecurringExpenses();
           }
         )
@@ -59,6 +68,7 @@ export const useRecurringExpenses = (impersonatedUserId?: string) => {
           'postgres_changes',
           { event: 'UPDATE', schema: 'public', table: 'recurring_expenses', filter: `user_id=eq.${targetUserId}` },
           (payload) => {
+            console.log("[useRecurringExpenses] Realtime UPDATE event:", payload);
             refreshRecurringExpenses();
           }
         )
@@ -66,12 +76,14 @@ export const useRecurringExpenses = (impersonatedUserId?: string) => {
           'postgres_changes',
           { event: 'DELETE', schema: 'public', table: 'recurring_expenses', filter: `user_id=eq.${targetUserId}` },
           (payload) => {
+            console.log("[useRecurringExpenses] Realtime DELETE event:", payload);
             refreshRecurringExpenses();
           }
         )
         .subscribe();
 
       return () => {
+        console.log("[useRecurringExpenses] Unsubscribing from channel:", `recurring-expenses-changes-${targetUserId}`);
         supabase.removeChannel(channel);
       };
     };
@@ -81,6 +93,7 @@ export const useRecurringExpenses = (impersonatedUserId?: string) => {
 
   const addRecurringExpense = async (expense: Omit<RecurringExpense, 'id'>) => {
     const targetUserId = await getEffectiveUserId();
+    console.log("[useRecurringExpenses] addRecurringExpense using targetUserId:", targetUserId);
 
     if (!targetUserId) {
       toast.error("Nepavyko pridėti pasikartojančios išlaidos - nėra vartotojo");
@@ -111,7 +124,7 @@ export const useRecurringExpenses = (impersonatedUserId?: string) => {
       if (error) {
         setRecurringExpenses(prevExpenses => prevExpenses.filter(exp => exp.id !== tempId));
         toast.error("Nepavyko pridėti pasikartojančios išlaidos");
-        console.error(error);
+        console.error("[useRecurringExpenses] Error adding recurring expense:", error);
         return null;
       }
 
@@ -121,17 +134,19 @@ export const useRecurringExpenses = (impersonatedUserId?: string) => {
       });
 
       toast.success(`Pasikartojanti išlaida "${expense.name}" pridėta.`);
+      console.log("[useRecurringExpenses] Recurring expense added:", data);
       return data as RecurringExpense;
     } catch (error) {
       setRecurringExpenses(prevExpenses => prevExpenses.filter(exp => exp.id !== tempId));
       toast.error("Nepavyko pridėti pasikartojančios išlaidos");
-      console.error(error);
+      console.error("[useRecurringExpenses] Unexpected error adding recurring expense:", error);
       return null;
     }
   };
 
   const deleteRecurringExpense = async (id: string) => {
     const targetUserId = await getEffectiveUserId();
+    console.log("[useRecurringExpenses] deleteRecurringExpense using targetUserId:", targetUserId);
 
     if (!targetUserId) {
       toast.error("Nepavyko ištrinti pasikartojančios išlaidos - nėra vartotojo");
@@ -150,7 +165,7 @@ export const useRecurringExpenses = (impersonatedUserId?: string) => {
       if (error) {
         refreshRecurringExpenses();
         toast.error("Nepavyko ištrinti pasikartojančios išlaidos");
-        console.error(error);
+        console.error("[useRecurringExpenses] Error deleting recurring expense:", error);
         return false;
       }
 
@@ -159,7 +174,7 @@ export const useRecurringExpenses = (impersonatedUserId?: string) => {
     } catch (error) {
       refreshRecurringExpenses();
       toast.error("Nepavyko ištrinti pasikartojančios išlaidos");
-      console.error(error);
+      console.error("[useRecurringExpenses] Unexpected error deleting recurring expense:", error);
       return false;
     }
   };

@@ -2,20 +2,26 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const useMonthlyIncomes = (impersonatedUserId?: string) => {
+export const useMonthlyIncomes = (impersonatedUserIdFromProps?: string) => {
   const [monthlyIncomes, setMonthlyIncomes] = useState<{ [key: string]: number }>({});
   const [defaultMonthlyIncome, setDefaultMonthlyIncome] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   const getEffectiveUserId = useCallback(async () => {
-    if (impersonatedUserId) return impersonatedUserId;
+    console.log("[useMonthlyIncomes] getEffectiveUserId called. impersonatedUserIdFromProps:", impersonatedUserIdFromProps);
+    if (impersonatedUserIdFromProps) {
+      console.log("[useMonthlyIncomes] Returning impersonatedUserIdFromProps:", impersonatedUserIdFromProps);
+      return impersonatedUserIdFromProps;
+    }
     const { data: { user } } = await supabase.auth.getUser();
+    console.log("[useMonthlyIncomes] No impersonated ID. Falling back to supabase.auth.getUser(). User ID:", user?.id);
     return user?.id;
-  }, [impersonatedUserId]);
+  }, [impersonatedUserIdFromProps]);
 
   const refreshMonthlyIncomes = useCallback(async () => {
     setLoading(true);
     const targetUserId = await getEffectiveUserId();
+    console.log("[useMonthlyIncomes] refreshMonthlyIncomes using targetUserId:", targetUserId);
 
     if (!targetUserId) {
       setMonthlyIncomes({});
@@ -31,7 +37,7 @@ export const useMonthlyIncomes = (impersonatedUserId?: string) => {
 
     if (error) {
       toast.error("Nepavyko įkelti pajamų");
-      console.error(error);
+      console.error("[useMonthlyIncomes] Error loading incomes:", error);
     } else {
       const defaultIncome = data.find(item => item.month_year === 'default');
       if (defaultIncome) {
@@ -46,6 +52,7 @@ export const useMonthlyIncomes = (impersonatedUserId?: string) => {
         }, {} as { [key: string]: number });
 
       setMonthlyIncomes(monthIncomes);
+      console.log("[useMonthlyIncomes] Loaded incomes for user:", targetUserId, { defaultIncome: defaultIncome?.income, monthIncomes });
     }
     setLoading(false);
   }, [getEffectiveUserId]);
@@ -55,15 +62,17 @@ export const useMonthlyIncomes = (impersonatedUserId?: string) => {
 
     const setupSubscription = async () => {
       const targetUserId = await getEffectiveUserId();
+      console.log("[useMonthlyIncomes] Setting up subscription for targetUserId:", targetUserId);
 
       if (!targetUserId) return;
 
       const channel = supabase
-        .channel('monthly-incomes-changes')
+        .channel(`monthly-incomes-changes-${targetUserId}`)
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'monthly_incomes', filter: `user_id=eq.${targetUserId}` },
           (payload) => {
+            console.log("[useMonthlyIncomes] Realtime INSERT event:", payload);
             refreshMonthlyIncomes();
           }
         )
@@ -71,6 +80,7 @@ export const useMonthlyIncomes = (impersonatedUserId?: string) => {
           'postgres_changes',
           { event: 'UPDATE', schema: 'public', table: 'monthly_incomes', filter: `user_id=eq.${targetUserId}` },
           (payload) => {
+            console.log("[useMonthlyIncomes] Realtime UPDATE event:", payload);
             refreshMonthlyIncomes();
           }
         )
@@ -78,12 +88,14 @@ export const useMonthlyIncomes = (impersonatedUserId?: string) => {
           'postgres_changes',
           { event: 'DELETE', schema: 'public', table: 'monthly_incomes', filter: `user_id=eq.${targetUserId}` },
           (payload) => {
+            console.log("[useMonthlyIncomes] Realtime DELETE event:", payload);
             refreshMonthlyIncomes();
           }
         )
         .subscribe();
 
       return () => {
+        console.log("[useMonthlyIncomes] Unsubscribing from channel:", `monthly-incomes-changes-${targetUserId}`);
         supabase.removeChannel(channel);
       };
     };
@@ -93,6 +105,7 @@ export const useMonthlyIncomes = (impersonatedUserId?: string) => {
 
   const saveIncome = async (income: number, type: 'default' | 'month', monthYear?: string) => {
     const targetUserId = await getEffectiveUserId();
+    console.log("[useMonthlyIncomes] saveIncome using targetUserId:", targetUserId, "type:", type, "monthYear:", monthYear, "income:", income);
 
     if (!targetUserId) {
       toast.error("Nepavyko išsaugoti pajamų - nėra vartotojo");
@@ -115,7 +128,7 @@ export const useMonthlyIncomes = (impersonatedUserId?: string) => {
 
       if (deleteError) {
         toast.error("Nepavyko pašalinti mėnesio pajamų");
-        console.error(deleteError);
+        console.error("[useMonthlyIncomes] Error deleting monthly income:", deleteError);
         return false;
       }
 
@@ -149,6 +162,7 @@ export const useMonthlyIncomes = (impersonatedUserId?: string) => {
       } else if (monthYear) {
         toast.success(`Mėnesio ${monthYear} pajamos atnaujintos!`);
       }
+      console.log("[useMonthlyIncomes] Income updated:", updateData);
       return true;
     }
 
@@ -160,7 +174,7 @@ export const useMonthlyIncomes = (impersonatedUserId?: string) => {
 
     if (insertError) {
       toast.error("Nepavyko išsaugoti pajamų");
-      console.error(insertError);
+      console.error("[useMonthlyIncomes] Error inserting income:", insertError);
       return false;
     }
 
@@ -175,6 +189,7 @@ export const useMonthlyIncomes = (impersonatedUserId?: string) => {
     } else if (monthYear) {
       toast.success(`Mėnesio ${monthYear} pajamos atnaujintos!`);
     }
+    console.log("[useMonthlyIncomes] Income inserted:", insertData);
     return true;
   };
 
