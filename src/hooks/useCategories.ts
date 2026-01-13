@@ -2,22 +2,19 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const useCategories = (userId?: string) => {
+export const useCategories = (impersonatedUserId?: string) => {
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const getTargetUserId = useCallback(async () => {
-    // If userId is provided (for impersonation), use it
-    if (userId) return userId;
-
-    // Otherwise get current user
+  const getEffectiveUserId = useCallback(async () => {
+    if (impersonatedUserId) return impersonatedUserId;
     const { data: { user } } = await supabase.auth.getUser();
     return user?.id;
-  }, [userId]);
+  }, [impersonatedUserId]);
 
   const refreshCategories = useCallback(async () => {
     setLoading(true);
-    const targetUserId = await getTargetUserId();
+    const targetUserId = await getEffectiveUserId();
 
     if (!targetUserId) {
       setCategories([]);
@@ -35,18 +32,17 @@ export const useCategories = (userId?: string) => {
       toast.error("Nepavyko įkelti kategorijų");
       console.error(error);
     } else {
-      // Ensure categories are unique by using Set
       const uniqueCategories = Array.from(new Set(data.map((item) => item.name)));
       setCategories(uniqueCategories);
     }
     setLoading(false);
-  }, [getTargetUserId]);
+  }, [getEffectiveUserId]);
 
   useEffect(() => {
     refreshCategories();
 
     const setupSubscription = async () => {
-      const targetUserId = await getTargetUserId();
+      const targetUserId = await getEffectiveUserId();
 
       if (!targetUserId) return;
 
@@ -74,24 +70,22 @@ export const useCategories = (userId?: string) => {
     };
 
     setupSubscription();
-  }, [refreshCategories, getTargetUserId]);
+  }, [refreshCategories, getEffectiveUserId]);
 
   const addCategory = async (name: string) => {
-    const targetUserId = await getTargetUserId();
+    const targetUserId = await getEffectiveUserId();
 
     if (!targetUserId) {
       toast.error("Nepavyko pridėti kategorijos - nėra vartotojo");
       return false;
     }
 
-    // Check if category already exists (case-insensitive)
     const trimmedName = name.trim();
     if (categories.some(cat => cat.toLowerCase() === trimmedName.toLowerCase())) {
       toast.error(`Kategorija "${trimmedName}" jau egzistuoja.`);
       return false;
     }
 
-    // Optimistically update UI
     setCategories(prevCategories => [...prevCategories, trimmedName].sort());
 
     try {
@@ -100,10 +94,9 @@ export const useCategories = (userId?: string) => {
         .insert([{ name: trimmedName, user_id: targetUserId }]);
 
       if (error) {
-        // Revert optimistic update on error
         setCategories(prevCategories => prevCategories.filter(cat => cat !== trimmedName));
 
-        if (error.code === '23505') { // Unique violation
+        if (error.code === '23505') {
           toast.error("Tokia kategorija jau egzistuoja.");
         } else {
           toast.error("Nepavyko pridėti kategorijos");
@@ -115,7 +108,6 @@ export const useCategories = (userId?: string) => {
       toast.success(`Kategorija "${trimmedName}" pridėta.`);
       return true;
     } catch (error) {
-      // Revert optimistic update on error
       setCategories(prevCategories => prevCategories.filter(cat => cat !== trimmedName));
       toast.error("Nepavyko pridėti kategorijos");
       console.error(error);
@@ -124,14 +116,13 @@ export const useCategories = (userId?: string) => {
   };
 
   const deleteCategory = async (name: string) => {
-    const targetUserId = await getTargetUserId();
+    const targetUserId = await getEffectiveUserId();
 
     if (!targetUserId) {
       toast.error("Nepavyko ištrinti kategorijos - nėra vartotojo");
       return false;
     }
 
-    // Optimistically update UI
     setCategories(prevCategories => prevCategories.filter(cat => cat !== name));
 
     try {
@@ -142,7 +133,6 @@ export const useCategories = (userId?: string) => {
         .eq('user_id', targetUserId);
 
       if (error) {
-        // Revert optimistic update on error
         refreshCategories();
         toast.error("Nepavyko ištrinti kategorijos");
         console.error(error);
@@ -152,7 +142,6 @@ export const useCategories = (userId?: string) => {
       toast.success(`Kategorija "${name}" ištrinta.`);
       return true;
     } catch (error) {
-      // Revert optimistic update on error
       refreshCategories();
       toast.error("Nepavyko ištrinti kategorijos");
       console.error(error);
